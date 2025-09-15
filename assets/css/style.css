@@ -82,7 +82,7 @@ main { padding-top: 40px; padding-bottom: 100px; }
 .add-btn:hover { background-color: #218838; transform: translateY(-2px); box-shadow: var(--sombra-media); }
 .add-btn i { margin-right: 8px; }
 .funcionarios-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
-.funcionario-card { display: flex; flex-direction: column; justify-content: space-between; background-color: #fff; border-radius: 12px; box-shadow: var(--sombra-suave); padding: 25px; transition: all 0.3s ease; border-left: 5px solid var(--azul-principal); }
+.funcionario-card { position: relative; display: flex; flex-direction: column; justify-content: space-between; background-color: #fff; border-radius: 12px; box-shadow: var(--sombra-suave); padding: 25px; transition: all 0.3s ease; border-left: 5px solid var(--azul-principal); }
 .funcionario-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: var(--sombra-media); }
 .card-actions { border-top: 1px solid var(--cinza-borda); margin-top: 20px; padding-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
 .card-btn { background: none; border: 1px solid var(--cinza-borda); border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; }
@@ -435,3 +435,197 @@ body.dark-mode .filtros-principais .filter-group {
     font-size: 15px;
     border-radius: 8px;
 }
+
+
+/* Novas cores para as pastas */
+.folder:nth-child(6) { --folder-color: #fd7e14; --folder-gradient: #e66a00; } /* Treinamento */
+.folder:nth-child(7) { --folder-color: #6c757d; --folder-gradient: #5a6268; } /* Sinistro */
+.folder:nth-child(8) { --folder-color: var(--roxo-info); --folder-gradient: #5a2d92; } /* Documentos */
+.folder:nth-child(9) { --folder-color: var(--cinza-texto); --folder-gradient: #444; } /* Outros */
+
+/* Estilo para o novo filtro de idade */
+.filter-group-range {
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    padding: 6px 15px;
+}
+.filter-group-range label {
+    font-weight: 500;
+    font-size: 0.9em;
+    color: var(--cinza-texto);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.filter-group-range .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.filter-group-range .range-inputs input {
+    width: 60px;
+    border: none;
+    background: transparent;
+    padding: 5px;
+    text-align: center;
+}
+.filter-group-range .range-inputs input:focus {
+    outline: none;
+}
+
+/* style.css */
+.filter-group-dynamic {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    padding: 8px;
+}
+.filter-group-dynamic .main-filter,
+.filter-group-dynamic .sub-filter {
+    border: none;
+    padding: 0;
+}
+.filter-group-dynamic .sub-filter {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.4s ease;
+    opacity: 0;
+}
+.filter-group-dynamic .sub-filter:not(.hidden) {
+    max-height: 100px;
+    opacity: 1;
+}
+
+/* ================================================= */
+/* === REFINAMENTO RESPONSIVO PARA DISPOSITIVOS MÓVEIS === */
+/* ================================================= */
+
+/* Ajustes gerais para telas médias (Tablets) */
+@media (max-width: 992px) {
+    .section-header h2 {
+        font-size: 26px; /* Reduz o tamanho do título da seção */
+    }
+    .modal-content {
+        max-width: 90%; /* Limita a largura do modal */
+    }
+}
+
+
+/* Ajustes mais agressivos para telas pequenas (Celulares) */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px; /* Menos espaçamento lateral */
+    }
+
+    /* Ajustes nos Filtros */
+    .filtros-avancados .grid {
+        grid-template-columns: 1fr; /* Força uma única coluna para os filtros */
+    }
+
+    /* Ajustes nos Modais */
+    .modal-body {
+        padding: 20px; /* Menos espaçamento interno nos modais */
+    }
+    .form-body {
+        padding: 20px;
+    }
+    #form-modal .modal-content {
+        /* Permite que o modal use quase toda a tela no celular */
+        width: 95%;
+        max-height: 90vh;
+    }
+    .form-progress-bar p {
+        /* Esconde o texto "Principais", "Pessoais", etc, em telas muito pequenas */
+        font-size: 12px;
+    }
+
+    /* Deixa o grid de informações pessoais com uma coluna */
+    .info-pessoal-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Melhora a grade de pastas no celular */
+    .folder-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+    }
+    .folder i {
+        font-size: 2rem;
+    }
+}
+
+
+/* Ajustes finos para telas muito pequenas (ex: iPhone SE) */
+@media (max-width: 480px) {
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .section-header i {
+        margin-right: 0;
+    }
+    
+    .login-box {
+        padding: 30px 20px;
+    }
+
+    /* Esconde o texto do wizard, deixando só os números */
+    .form-progress-bar p {
+        display: none;
+    }
+
+    .form-footer {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .form-navigation {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* Melhora a exibição do dashboard */
+    .dashboard-controls {
+        padding: 15px;
+        gap: 15px;
+    }
+    .summary-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    .summary-card .info input {
+        text-align: center;
+    }
+}
+
+/* === ESTILO PARA O SELO DE RECONTRATAÇÃO === */
+.recontratacao-selo {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 2;
+}
+
+/* Cor para cada status */
+.recontratacao-selo.nao {
+    background-color: var(--vermelho-erro);
+}
+.recontratacao-selo.avaliar {
+    background-color: var(--amarelo-aviso);
+}
+.recontratacao-selo.sim {
+    background-color: var(--verde-sucesso);
+}
+
