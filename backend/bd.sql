@@ -75,6 +75,15 @@ CREATE TABLE `status_diario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+
+-- Script para adicionar as colunas de histórico de demissão na tabela `funcionarios`
+ALTER TABLE funcionarios
+ADD COLUMN motivo_demissao TEXT DEFAULT NULL,
+ADD COLUMN elegivel_recontratacao ENUM('Sim', 'Não', 'Avaliar') DEFAULT NULL;
+
+
+
+
 -- ======================================================================================
 -- PARTE 2: CONSULTAS (SELECTs) PARA DEMONSTRAÇÃO
 -- ======================================================================================
@@ -173,3 +182,6 @@ SELECT data, presentes, falta_injustificada, atestado, folga
 FROM status_diario
 WHERE unidade = 'Garagem Centro' -- << Troque pelo nome da unidade desejada
 ORDER BY data DESC;
+
+
+
