@@ -185,12 +185,23 @@ switch ($action) {
         break;
 
     case 'terminate_funcionario':
-        $id = $_POST['id'];
-        $data_demissao = $_POST['data_demissao'];
-        $stmt = $pdo->prepare("UPDATE funcionarios SET status = 'inativo', data_demissao = ? WHERE id = ?");
-        $success = $stmt->execute([$data_demissao, $id]);
-        echo json_encode(['success' => $success]);
-        break;
+    $id = $_POST['id'] ?? 0;
+    $data_demissao = $_POST['data_demissao'] ?? null;
+    $motivo_demissao = $_POST['motivo_demissao'] ?? null;
+    $elegivel_recontratacao = $_POST['elegivel_recontratacao'] ?? null;
+    
+    $stmt = $pdo->prepare(
+        "UPDATE funcionarios 
+         SET status = 'inativo', 
+             data_demissao = ?, 
+             motivo_demissao = ?, 
+             elegivel_recontratacao = ? 
+         WHERE id = ?"
+    );
+    $params = [$data_demissao, $motivo_demissao, $elegivel_recontratacao, $id];
+    $success = $stmt->execute($params);
+    echo json_encode(['success' => $success, 'message' => 'Contrato encerrado com sucesso.']);
+    break;
         
     case 'delete_funcionario':
         $id = $_POST['id'];
