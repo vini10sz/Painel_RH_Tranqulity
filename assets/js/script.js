@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final com Todos os Ajustes e Melhorias
+// assets/js/script.js - Versão Final Corrigida
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let dashboardInitialized = false;
     const API_URL = 'backend/api.php';
     
+    Chart.register(ChartDataLabels); // REGISTRO DO PLUGIN DO GRÁFICO
+
     // =================================================================================
     // 2. LÓGICA DO DARK MODE
     // =================================================================================
@@ -131,13 +133,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function clearAllFilters() {
         document.querySelectorAll('.filtros-container').forEach(container => {
-            container.querySelectorAll('input.search-input, input.city-filter').forEach(input => input.value = '');
+            container.querySelectorAll('input.search-input, input.city-filter, input[type="number"]').forEach(input => input.value = '');
             container.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
             
             const advancedFilters = container.querySelector('.filtros-avancados');
             if (advancedFilters && advancedFilters.classList.contains('open')) {
                 advancedFilters.classList.remove('open');
             }
+            container.querySelectorAll('.children-filter').forEach(select => {
+                select.dispatchEvent(new Event('change'));
+            });
             updateActiveFilterCount(container, 0);
         });
     }
@@ -201,20 +206,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function filterAndRenderLists() {
-        const listMap = {
-            'ativos': 'funcionarios-section',
-            'inativos': 'inativos-section'
-        };
+        const listMap = { 'ativos': 'funcionarios-section', 'inativos': 'inativos-section' };
     
         for (const [type, sectionId] of Object.entries(listMap)) {
-            
             const section = document.querySelector(`#${sectionId}`);
             if (!section) continue;
-    
             const container = section.querySelector('.filtros-container');
             const grid = section.querySelector('.funcionarios-grid');
             const sourceList = masterEmployeeList[type] || [];
-    
             if (!container || !grid) continue;
     
             const filters = {
@@ -222,48 +221,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 unidade: container.querySelector('.location-filter').value,
                 genero: container.querySelector('.gender-filter')?.value,
                 status_filhos: container.querySelector('.children-filter')?.value,
+                idade_filho_min: container.querySelector('.children-age-min-filter')?.value,
+                idade_filho_max: container.querySelector('.children-age-max-filter')?.value,
+                mes_aniversario: container.querySelector('.birthday-month-filter')?.value,
                 cidade: container.querySelector('.city-filter')?.value.toLowerCase(),
                 estado: container.querySelector('.state-filter')?.value,
                 vencimento: container.querySelector('.expiry-filter')?.value,
-                aniversario_mes: container.querySelector('.birthday-filter')?.value === 'sim'
+                recontratacao: container.querySelector('.rehire-filter')?.value
             };
     
-            let activeFilterCount = 0;
-            for (const key of ['genero', 'status_filhos', 'cidade', 'estado', 'vencimento', 'aniversario_mes']) {
-                 if (filters[key] && filters[key] !== '') {
-                    activeFilterCount++;
+            let filteredList = sourceList;
+    
+            if (filters.nome) {
+                filteredList = filteredList.filter(func => func.nome && func.nome.toLowerCase().includes(filters.nome));
+            }
+            if (filters.unidade && filters.unidade !== 'Todos') {
+                filteredList = filteredList.filter(func => func.local === filters.unidade);
+            }
+            if (filters.genero) {
+                filteredList = filteredList.filter(func => func.genero === filters.genero);
+            }
+            if (filters.cidade) {
+                filteredList = filteredList.filter(func => func.cidade && func.cidade.toLowerCase().includes(filters.cidade));
+            }
+            if (filters.estado) {
+                filteredList = filteredList.filter(func => func.estado === filters.estado);
+            }
+            if (filters.mes_aniversario) {
+                filteredList = filteredList.filter(func => func.data_nascimento && (new Date(func.data_nascimento + 'T12:00:00').getMonth() + 1) == filters.mes_aniversario);
+            }
+            if (filters.vencimento && type === 'ativos') {
+                filteredList = filteredList.filter(func => func[filters.vencimento] && new Date(func[filters.vencimento] + 'T12:00:00') < new Date());
+            }
+            if (type === 'inativos' && filters.recontratacao) {
+                const normalizedFilter = filters.recontratacao.toLowerCase().replace('ã', 'a');
+                filteredList = filteredList.filter(func => func.elegivel_recontratacao && func.elegivel_recontratacao.toLowerCase().replace('ã', 'a') === normalizedFilter);
+            }
+    
+            if (filters.status_filhos) {
+                if (filters.status_filhos === 'sim') {
+                    filteredList = filteredList.filter(func => parseInt(func.quantidade_filhos) > 0);
+                    
+                    const minAge = filters.idade_filho_min ? parseInt(filters.idade_filho_min) : null;
+                    const maxAge = filters.idade_filho_max ? parseInt(filters.idade_filho_max) : null;
+    
+                    if (minAge !== null || maxAge !== null) {
+                        filteredList = filteredList.filter(func => {
+                            if (!func.nome_filhos) return false;
+                            try {
+                                const filhos = JSON.parse(func.nome_filhos);
+                                const min = minAge !== null ? minAge : 0;
+                                const max = maxAge !== null ? maxAge : 999;
+                                return filhos.some(filho => {
+                                    if (!filho.data_nascimento) return false;
+                                    const idade = parseInt(calculateAge(filho.data_nascimento));
+                                    return !isNaN(idade) && idade >= min && idade <= max;
+                                });
+                            } catch (e) {
+                                return false;
+                            }
+                        });
+                    }
+                } else if (filters.status_filhos === 'nao') {
+                    filteredList = filteredList.filter(func => !func.quantidade_filhos || parseInt(func.quantidade_filhos) === 0);
                 }
             }
-            updateActiveFilterCount(container, activeFilterCount);
-    
-            const filteredList = sourceList.filter(func => {
-                const hoje = new Date();
-                hoje.setHours(0, 0, 0, 0);
-    
-                const checkNome = !filters.nome || (func.nome && func.nome.toLowerCase().includes(filters.nome));
-                const checkUnidade = !filters.unidade || filters.unidade === 'Todos' || func.local === filters.unidade;
-                const checkGenero = !filters.genero || func.genero === filters.genero;
-                const checkFilhos = !filters.status_filhos || (filters.status_filhos === 'sim' ? parseInt(func.quantidade_filhos) > 0 : (parseInt(func.quantidade_filhos) === 0 || func.quantidade_filhos === null));
-                const checkCidade = !filters.cidade || (func.cidade && func.cidade.toLowerCase().includes(filters.cidade));
-                const checkEstado = !filters.estado || func.estado === filters.estado;
-                
-                let checkAniversario = true;
-                if(filters.aniversario_mes) {
-                    checkAniversario = func.data_nascimento && new Date(func.data_nascimento + 'T12:00:00').getMonth() === hoje.getMonth();
-                }
-                
-                let checkVencimento = true;
-                if (filters.vencimento && type === 'ativos') {
-                    if (func[filters.vencimento]) {
-                        const dataVencimento = new Date(func[filters.vencimento] + 'T12:00:00');
-                        checkVencimento = dataVencimento < hoje;
-                    } else {
-                        checkVencimento = false;
-                    }
-                }
-                
-                return checkNome && checkUnidade && checkGenero && checkFilhos && checkCidade && checkEstado && checkAniversario && checkVencimento;
-            });
             
             renderList(filteredList, grid);
         }
@@ -303,7 +325,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataValue = func.status === 'ativo' ? func.data_admissao : func.data_demissao;
         const formattedDate = dataValue && dataValue !== '0000-00-00' ? new Date(dataValue + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado';
         
+        let seloHtml = '';
+        if (func.status === 'inativo' && func.elegivel_recontratacao) {
+            let statusClass = func.elegivel_recontratacao.toLowerCase();
+            if (statusClass === 'não') {
+                statusClass = 'nao';
+            }
+            seloHtml = `<div class="recontratacao-selo ${statusClass}">${func.elegivel_recontratacao}</div>`;
+        }
+
         card.innerHTML = `
+            ${seloHtml}
             <div class="funcionario-card-content" data-action="open-details">
                 <h3>${func.nome}</h3>
                 <p><i class="fas fa-briefcase"></i>${func.funcao || 'Não informado'}</p>
@@ -460,13 +492,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         </ul>
                     </div>
                 `;
-            } catch(e) { console.error("Erro ao parsear dados do cônjuge:", e); }
+            } catch(e) {}
+        }
+        
+        let historicoDemissaoHtml = '';
+        if (func.status === 'inativo') {
+            historicoDemissaoHtml = `
+                <div class="grid-full-width info-demissao">
+                    <strong>Histórico de Desligamento</strong>
+                    <p><strong>Data:</strong> ${func.data_demissao ? new Date(func.data_demissao + 'T12:00:00').toLocaleDateString('pt-BR') : 'N/A'}</p>
+                    <p><strong>Motivo:</strong> ${func.motivo_demissao || 'Não informado'}</p>
+                    <p><strong>Elegível para Recontratação:</strong> ${func.elegivel_recontratacao || 'Não informado'}</p>
+                </div>
+            `;
         }
         
         const enderecoCompleto = `${func.rua || ''}, ${func.numero || 'S/N'}${func.complemento ? ' - ' + func.complemento : ''}`;
 
         tabPessoal.innerHTML = `
             <div class="info-pessoal-grid">
+                ${historicoDemissaoHtml}
                 <div><strong>Idade</strong> ${calculateAge(func.data_nascimento)}</div>
                 <div><strong>Gênero</strong> ${func.genero || 'Não informado'}</div>
                 <div><strong>Estado Civil</strong> ${func.estado_civil || 'Não informado'}</div>
@@ -644,11 +689,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const labels = Object.values(inputs).map(item => item.label);
         const dataValues = Object.values(inputs).map(item => parseInt(item.el.value) || 0);
-        let total = 0;
+        let total = dataValues.reduce((sum, value) => sum + value, 0);
 
         dataValues.forEach((value, index) => {
             summaryTableBody.innerHTML += `<tr><td>${labels[index]}</td><td>${value}</td></tr>`;
-            total += value;
         });
         summaryTableTotal.innerHTML = `<td><strong>Total</strong></td><td><strong>${total}</strong></td>`;
 
@@ -669,14 +713,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: body.classList.contains('dark-mode') ? '#e0e0e0' : '#555'
-                        }
-                    },
+                    legend: { position: 'bottom', labels: { color: body.classList.contains('dark-mode') ? '#e0e0e0' : '#555' } },
                     datalabels: {
-                        formatter: (value) => value > 0 ? value : '',
+                        formatter: (value, context) => {
+                            if (value === 0) return '';
+                            const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            if (sum === 0) return '0';
+                            const percentage = (value / sum * 100).toFixed(0);
+                            return `${value} (${percentage}%)`;
+                        },
                         color: '#fff',
                         font: { weight: 'bold', size: 14 }
                     }
@@ -771,10 +816,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('popstate', handleRouteChange);
 
         document.querySelectorAll('.filtros-container').forEach(container => {
-            const inputs = container.querySelectorAll('.search-input, .location-filter, .gender-filter, .children-filter, .expiry-filter, .birthday-filter, .city-filter, .state-filter');
+            const inputs = container.querySelectorAll('.search-input, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter');
             let timer;
             inputs.forEach(input => {
-                const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
+                const eventType = ['SELECT', 'INPUT'].includes(input.tagName) ? 'change' : 'input';
                 input.addEventListener(eventType, () => {
                     clearTimeout(timer);
                     timer = setTimeout(filterAndRenderLists, 350);
@@ -793,8 +838,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearBtn.addEventListener('click', () => {
                     const advancedFilters = clearBtn.closest('.filtros-avancados');
                     if (advancedFilters) {
-                        advancedFilters.querySelectorAll('input[type="text"], select').forEach(input => {
-                            if (input.tagName === 'SELECT') input.selectedIndex = 0;
+                        advancedFilters.querySelectorAll('input[type="text"], input[type="number"], select').forEach(input => {
+                            if (input.tagName === 'SELECT') {
+                                input.selectedIndex = 0;
+                                if(input.classList.contains('children-filter')) {
+                                    input.dispatchEvent(new Event('change'));
+                                }
+                            }
                             else input.value = '';
                         });
                     }
@@ -898,10 +948,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         case 'terminate':
                             const dataDemissao = prompt("Insira a data de demissão (AAAA-MM-DD):", new Date().toISOString().split('T')[0]);
                             if (dataDemissao && /^\d{4}-\d{2}-\d{2}$/.test(dataDemissao)) {
+                                const motivoDemissao = prompt("Insira o motivo do desligamento:", "");
+                                const elegivelOptions = ['Sim', 'Não', 'Avaliar'];
+                                const elegivelInput = prompt(`O funcionário é elegível para recontratação?\nOpções: ${elegivelOptions.join(', ')}`, "Avaliar");
+                                const elegivelRecontratacao = elegivelOptions.includes(elegivelInput) ? elegivelInput : 'Avaliar';
+
                                 const formData = new FormData();
                                 formData.append('action', 'terminate_funcionario');
                                 formData.append('id', funcId);
                                 formData.append('data_demissao', dataDemissao);
+                                formData.append('motivo_demissao', motivoDemissao);
+                                formData.append('elegivel_recontratacao', elegivelRecontratacao);
+
                                 if (await postAPI(formData)) {
                                     showToast('Contrato encerrado.');
                                     refreshDataAndRender();
@@ -939,27 +997,19 @@ document.addEventListener('DOMContentLoaded', function() {
             menuToggle.addEventListener('click', () => mainNav.classList.toggle('active'));
         }
 
-        const temFilhosSelect = document.getElementById('tem_filhos');
-        const childrenContainer = document.getElementById('children-dynamic-container');
-        const addChildBtn = document.getElementById('add-child-btn');
-
-        if (temFilhosSelect) {
-            temFilhosSelect.addEventListener('change', () => {
-                if (temFilhosSelect.value === 'sim') {
-                    childrenContainer.classList.remove('hidden');
-                    if (document.getElementById('children-list').children.length === 0) {
-                        createChildEntry();
-                    }
+        document.querySelectorAll('.children-filter').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const parent = e.target.closest('.filter-group-dynamic');
+                const subFilter = parent.querySelector('.sub-filter');
+                if (e.target.value === 'sim') {
+                    subFilter.classList.remove('hidden');
                 } else {
-                    childrenContainer.classList.add('hidden');
-                    document.getElementById('children-list').innerHTML = '';
+                    subFilter.classList.add('hidden');
+                    subFilter.querySelector('.children-age-min-filter').value = '';
+                    subFilter.querySelector('.children-age-max-filter').value = '';
                 }
             });
-        }
-
-        if (addChildBtn) {
-            addChildBtn.addEventListener('click', () => createChildEntry());
-        }
+        });
 
         const estadoCivilSelect = document.getElementById('estado_civil');
         const spouseContainer = document.getElementById('spouse-dynamic-container');
