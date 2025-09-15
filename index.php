@@ -82,11 +82,23 @@
                                         <option value="">Todos</option><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option><option value="Outro">Outro</option>
                                     </select>
                                 </div>
-                                <div class="filter-group">
-                                    <label><i class="fas fa-child"></i> Filhos</label>
-                                    <select class="children-filter">
-                                        <option value="">Todos</option><option value="sim">Com Filhos</option><option value="nao">Sem Filhos</option>
-                                    </select>
+                                <div class="filter-group-dynamic">
+                                    <div class="filter-group main-filter">
+                                        <label><i class="fas fa-child"></i> Dependentes</label>
+                                        <select class="children-filter">
+                                            <option value="">Todos</option>
+                                            <option value="sim">Com Filhos</option>
+                                            <option value="nao">Sem Filhos</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group-range sub-filter hidden">
+                                        <label>Idade Específica</label>
+                                        <div class="range-inputs">
+                                            <input type="number" class="children-age-min-filter" placeholder="De" min="0">
+                                            <span>-</span>
+                                            <input type="number" class="children-age-max-filter" placeholder="Até" min="0">
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="filter-group">
                                     <label><i class="fas fa-exclamation-triangle"></i> Vencimentos</label>
@@ -95,9 +107,10 @@
                                     </select>
                                 </div>
                                 <div class="filter-group">
-                                    <label><i class="fas fa-birthday-cake"></i> Aniversariantes</label>
-                                    <select class="birthday-filter">
-                                        <option value="">Qualquer data</option><option value="sim">Aniversariantes do Mês</option>
+                                    <label><i class="fas fa-birthday-cake"></i> Mês de Aniversário</label>
+                                    <select class="birthday-month-filter">
+                                        <option value="">Qualquer Mês</option>
+                                        <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -135,37 +148,59 @@
                              </button>
                          </div>
                          <div class="filtros-avancados">
-                             <div class="grid">
-                                 <div class="filter-group">
-                                     <label><i class="fas fa-venus-mars"></i> Gênero</label>
-                                     <select class="gender-filter">
-                                         <option value="">Todos</option><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option><option value="Outro">Outro</option>
-                                     </select>
-                                 </div>
-                                 <div class="filter-group">
-                                     <label><i class="fas fa-child"></i> Filhos</label>
-                                     <select class="children-filter">
-                                         <option value="">Todos</option><option value="sim">Com Filhos</option><option value="nao">Sem Filhos</option>
-                                     </select>
-                                 </div>
-                                 <div class="filter-group">
-                                     <label><i class="fas fa-birthday-cake"></i> Aniversariantes</label>
-                                     <select class="birthday-filter">
-                                         <option value="">Qualquer data</option><option value="sim">Aniversariantes do Mês</option>
-                                     </select>
-                                 </div>
-                                 <div class="filter-group">
-                                     <label><i class="fas fa-city"></i> Cidade</label>
-                                     <input type="text" class="city-filter" placeholder="Digite a cidade...">
-                                 </div>
-                                 <div class="filter-group">
-                                     <label><i class="fas fa-map-marked-alt"></i> Estado</label>
-                                     <select class="state-filter">
-                                         <option value="">Todos</option>
-                                         <option value="AC">Acre</option><option value="AL">Alagoas</option><option value="AP">Amapá</option><option value="AM">Amazonas</option><option value="BA">Bahia</option><option value="CE">Ceará</option><option value="DF">Distrito Federal</option><option value="ES">Espírito Santo</option><option value="GO">Goiás</option><option value="MA">Maranhão</option><option value="MT">Mato Grosso</option><option value="MS">Mato Grosso do Sul</option><option value="MG">Minas Gerais</option><option value="PA">Pará</option><option value="PB">Paraíba</option><option value="PR">Paraná</option><option value="PE">Pernambuco</option><option value="PI">Piauí</option><option value="RJ">Rio de Janeiro</option><option value="RN">Rio Grande do Norte</option><option value="RS">Rio Grande do Sul</option><option value="RO">Rondônia</option><option value="RR">Roraima</option><option value="SC">Santa Catarina</option><option value="SP">São Paulo</option><option value="SE">Sergipe</option><option value="TO">Tocantins</option>
-                                     </select>
-                                 </div>
-                             </div>
+                            <div class="grid">
+                                <div class="filter-group">
+                                    <label><i class="fas fa-venus-mars"></i> Gênero</label>
+                                    <select class="gender-filter">
+                                        <option value="">Todos</option><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option><option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group-dynamic">
+                                    <div class="filter-group main-filter">
+                                        <label><i class="fas fa-child"></i> Dependentes</label>
+                                        <select class="children-filter">
+                                            <option value="">Todos</option>
+                                            <option value="sim">Com Filhos</option>
+                                            <option value="nao">Sem Filhos</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group-range sub-filter hidden">
+                                        <label>Idade Específica</label>
+                                        <div class="range-inputs">
+                                            <input type="number" class="children-age-min-filter" placeholder="De" min="0">
+                                            <span>-</span>
+                                            <input type="number" class="children-age-max-filter" placeholder="Até" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-birthday-cake"></i> Mês de Aniversário</label>
+                                    <select class="birthday-month-filter">
+                                        <option value="">Qualquer Mês</option>
+                                        <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-check-circle"></i> Elegível à Recontratação</label>
+                                    <select class="rehire-filter">
+                                        <option value="">Todos</option>
+                                        <option value="sim">Sim</option>
+                                        <option value="nao">Não</option>
+                                        <option value="avaliar">Avaliar</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-city"></i> Cidade</label>
+                                    <input type="text" class="city-filter" placeholder="Digite a cidade...">
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-map-marked-alt"></i> Estado</label>
+                                    <select class="state-filter">
+                                        <option value="">Todos</option>
+                                        <option value="AC">Acre</option><option value="AL">Alagoas</option><option value="AP">Amapá</option><option value="AM">Amazonas</option><option value="BA">Bahia</option><option value="CE">Ceará</option><option value="DF">Distrito Federal</option><option value="ES">Espírito Santo</option><option value="GO">Goiás</option><option value="MA">Maranhão</option><option value="MT">Mato Grosso</option><option value="MS">Mato Grosso do Sul</option><option value="MG">Minas Gerais</option><option value="PA">Pará</option><option value="PB">Paraíba</option><option value="PR">Paraná</option><option value="PE">Pernambuco</option><option value="PI">Piauí</option><option value="RJ">Rio de Janeiro</option><option value="RN">Rio Grande do Norte</option><option value="RS">Rio Grande do Sul</option><option value="RO">Rondônia</option><option value="RR">Roraima</option><option value="SC">Santa Catarina</option><option value="SP">São Paulo</option><option value="SE">Sergipe</option><option value="TO">Tocantins</option>
+                                    </select>
+                                </div>
+                            </div>
                              <div class="advanced-filters-footer">
                                  <button class="clear-filters-btn"><i class="fas fa-times"></i> Limpar Filtros Avançados</button>
                              </div>
@@ -281,6 +316,8 @@
                             <div class="folder"><i class="fas fa-clock"></i><span>Ponto</span></div>
                             <div class="folder"><i class="fas fa-file-invoice-dollar"></i><span>Holerite</span></div>
                             <div class="folder"><i class="fas fa-exclamation-triangle"></i><span>Advertência</span></div>
+                            <div class="folder"><i class="fas fa-chalkboard-teacher"></i><span>Treinamento</span></div>
+                            <div class="folder"><i class="fas fa-car-crash"></i><span>Sinistro</span></div>
                             <div class="folder"><i class="fas fa-id-card"></i><span>Documentos</span></div>
                             <div class="folder"><i class="fas fa-folder-open"></i><span>Outros</span></div>
                         </div>
