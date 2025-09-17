@@ -82,7 +82,18 @@ main { padding-top: 40px; padding-bottom: 100px; }
 .add-btn:hover { background-color: #218838; transform: translateY(-2px); box-shadow: var(--sombra-media); }
 .add-btn i { margin-right: 8px; }
 .funcionarios-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
-.funcionario-card { position: relative; display: flex; flex-direction: column; justify-content: space-between; background-color: #fff; border-radius: 12px; box-shadow: var(--sombra-suave); padding: 25px; transition: all 0.3s ease; border-left: 5px solid var(--azul-principal); }
+.funcionario-card {
+    position: relative; /* Ajustado */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: var(--sombra-suave);
+    padding: 25px;
+    transition: all 0.3s ease;
+    border-left: 5px solid var(--azul-principal);
+}
 .funcionario-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: var(--sombra-media); }
 .card-actions { border-top: 1px solid var(--cinza-borda); margin-top: 20px; padding-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
 .card-btn { background: none; border: 1px solid var(--cinza-borda); border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; }
@@ -114,13 +125,19 @@ main { padding-top: 40px; padding-bottom: 100px; }
 .folder span { font-size: 1rem; font-weight: 600; transition: all 0.3s ease; color: var(--cinza-texto) }
 .folder:hover { color: #fff; transform: translateY(-10px) scale(1.03); box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.15); }
 .folder:hover i, .folder:hover span { color: #fff; }
-.folder:nth-child(1) { --folder-color: var(--verde-sucesso); --folder-gradient: #218838; }
-.folder:nth-child(2) { --folder-color: var(--amarelo-aviso); --folder-gradient: #e0a800; }
-.folder:nth-child(3) { --folder-color: var(--azul-principal); --folder-gradient: #0069d9; }
-.folder:nth-child(4) { --folder-color: var(--teal-info); --folder-gradient: #1c9474; }
-.folder:nth-child(5) { --folder-color: var(--vermelho-erro); --folder-gradient: #c82333; }
-.folder:nth-child(6) { --folder-color: var(--roxo-info); --folder-gradient: #5a2d92; }
-.folder:nth-child(7) { --folder-color: var(--cinza-texto); --folder-gradient: #444; }
+
+/* --- NOVAS CORES DAS PASTAS --- */
+.folder:nth-child(1) { --folder-color: #5bc0de; --folder-gradient: #31b0d5; }      /* Atestado (Azul Claro) */
+.folder:nth-child(2) { --folder-color: #ffca28; --folder-gradient: #ffbb00; }      /* Contrato (Amarelo) */
+.folder:nth-child(3) { --folder-color: #a52834; --folder-gradient: #8b222c; }      /* Disciplinar (Vermelho Escuro) */
+.folder:nth-child(4) { --folder-color: #6f42c1; --folder-gradient: #5a2d92; }      /* Doc. Pessoais (Roxo) */
+.folder:nth-child(5) { --folder-color: #1e1441; --folder-gradient: #2a05a1; }      /* Férias (Azul Escuro) */
+.folder:nth-child(6) { --folder-color: #19692c; --folder-gradient: #0f5a1e; }      /* Holerites (Verde Escuro) */
+.folder:nth-child(7) { --folder-color: #28a745; --folder-gradient: #218838; }      /* Ponto (Verde Claro) */
+.folder:nth-child(8) { --folder-color: #f08080; --folder-gradient: #e86161; }      /* Sinistro (Vermelho Claro) */
+.folder:nth-child(9) { --folder-color: #fd7e14; --folder-gradient: #e66a00; }      /* Treinamento (Laranja) */
+.folder:nth-child(10) { --folder-color: #6c757d; --folder-gradient: #5a6268; }     /* Outros (Cinza) */
+
 .folder i { color: var(--folder-color); }
 .folder:hover { background: linear-gradient(135deg, var(--folder-color), var(--folder-gradient)); }
 
@@ -267,6 +284,22 @@ body.dark-mode .form-group input.invalid, body.dark-mode .form-group select.inva
 .info-pessoal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px 25px; }
 .info-pessoal-grid div { padding: 10px; background-color: rgba(0,0,0,0.02); border-left: 3px solid var(--cor-destaque); border-radius: 4px; }
 .info-pessoal-grid strong { display: block; font-size: 0.8em; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+.info-demissao { background-color: #fff3f3; border-left-color: var(--vermelho-erro); padding: 15px; }
+.info-demissao p { margin: 5px 0; }
+body.dark-mode .info-demissao { background-color: #2e1a1a; }
+.filtros-container { background: none; border: none; padding: 0; }
+.filtros-principais { background-color: #fff; padding: 10px; border-radius: 12px; box-shadow: var(--sombra-suave); border: 1px solid var(--cinza-borda); gap: 10px; }
+body.dark-mode .filtros-principais { background-color: #2a2a52; border-color: var(--cinza-borda); }
+.filtros-principais .filter-group { display: flex; align-items: center; background-color: var(--cinza-fundo); border-radius: 8px; padding: 0 15px; flex-grow: 0; }
+body.dark-mode .filtros-principais .filter-group { background-color: #1e1e3f; }
+.filtros-principais .filter-group i { color: #999; margin-right: 10px; }
+.filtros-principais .filter-group input,
+.filtros-principais .filter-group select { border: none; background: transparent; height: 45px; padding: 0; font-size: 15px; font-family: 'Montserrat', sans-serif; color: var(--cinza-texto); -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+.filtros-principais .filter-group input { width: 250px; }
+.filtros-principais .filter-group select { cursor: pointer; padding-right: 20px; }
+.filtros-principais .filter-group input:focus,
+.filtros-principais .filter-group select:focus { outline: none; }
+.filtros-principais .advanced-filter-btn { margin-left: auto; height: 45px; font-size: 15px; border-radius: 8px; }
 
 .filtros-container { background-color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 40px; border: 1px solid var(--cinza-borda); }
 .filtros-principais { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
@@ -435,13 +468,6 @@ body.dark-mode .filtros-principais .filter-group {
     font-size: 15px;
     border-radius: 8px;
 }
-
-
-/* Novas cores para as pastas */
-.folder:nth-child(6) { --folder-color: #fd7e14; --folder-gradient: #e66a00; } /* Treinamento */
-.folder:nth-child(7) { --folder-color: #6c757d; --folder-gradient: #5a6268; } /* Sinistro */
-.folder:nth-child(8) { --folder-color: var(--roxo-info); --folder-gradient: #5a2d92; } /* Documentos */
-.folder:nth-child(9) { --folder-color: var(--cinza-texto); --folder-gradient: #444; } /* Outros */
 
 /* Estilo para o novo filtro de idade */
 .filter-group-range {
@@ -629,3 +655,188 @@ body.dark-mode .filtros-principais .filter-group {
     background-color: var(--verde-sucesso);
 }
 
+/* style.css (substitua a seção inteira) */
+
+/* === ESTILOS PARA O EXPLORADOR DE ARQUIVOS === */
+#file-explorer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+    border-bottom: 1px solid var(--cinza-borda);
+    padding-bottom: 15px;
+}
+#file-explorer-actions {
+    display: flex;
+    gap: 10px;
+}
+#file-explorer-actions button, #file-explorer-actions label {
+    padding: 8px 15px;
+    border-radius: 6px;
+    border: 1px solid var(--cor-destaque);
+    background-color: transparent;
+    color: var(--cor-destaque);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+#file-explorer-actions button:hover, #file-explorer-actions label:hover {
+    background-color: var(--cor-destaque);
+    color: #fff;
+}
+#breadcrumb {
+    font-weight: 600;
+    color: var(--cinza-texto);
+}
+#breadcrumb a {
+    color: var(--cor-destaque);
+    text-decoration: none;
+}
+#breadcrumb a:hover {
+    text-decoration: underline;
+}
+#file-explorer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 20px;
+}
+.explorer-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    position: relative;
+}
+.explorer-item:hover {
+    background-color: #e9ecef;
+    transform: translateY(-5px);
+}
+body.dark-mode .explorer-item:hover {
+    background-color: #2a2a52;
+}
+.explorer-item i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+.explorer-item.folder i {
+    color: #ffca28;
+}
+.explorer-item.file i {
+    color: #adb5bd;
+}
+.explorer-item span {
+    font-size: 0.9em;
+    font-weight: 500;
+    word-break: break-word;
+}
+.explorer-item .item-actions {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: none;
+    gap: 5px;
+}
+.explorer-item:hover .item-actions {
+    display: flex;
+}
+.item-actions .action-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, filter 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.item-actions .action-btn:hover {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+}
+.item-actions .action-btn.edit {
+    background-color: var(--azul-principal);
+}
+.item-actions .action-btn.delete {
+    background-color: var(--vermelho-erro);
+}
+
+
+/* ================================================= */
+/* === ESTILOS DAS NOVAS FUNCIONALIDADES === */
+/* ================================================= */
+
+/* --- SELO DE EMPRESA NO CARD --- */
+.empresa-selo {
+    position: absolute;
+    bottom: 15px;
+    left: 25px;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    border: 2px solid white;
+}
+.empresa-selo.tranquility {
+    background-color: #007bff; /* Azul */
+}
+.empresa-selo.gsm {
+    background-color: #ffc107; /* Amarelo */
+    color: #333; /* Texto escuro para melhor contraste */
+    border-color: #333;
+}
+.empresa-selo.protector {
+    background-color: #343a40; /* Preto/Cinza Escuro */
+}
+.empresa-selo.gs1 {
+    background-color: #dc3545; /* Vermelho */
+}
+
+/* === CORES DINÂMICAS PARA OS CARDS POR EMPRESA === */
+.funcionario-card.empresa-tranquility {
+    border-left-color: #007bff; /* Azul */
+}
+.funcionario-card.empresa-gsm {
+    border-left-color: #ffc107; /* Amarelo */
+}
+.funcionario-card.empresa-protector {
+    border-left-color: #6c757d; /* Cinza */
+}
+.funcionario-card.empresa-gs1 {
+    border-left-color: #dc3545; /* Vermelho */
+}
+
+/* === ESTILOS PARA LOGO DINÂMICO NO PDF === */
+.pdf-logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px; /* Espaçamento entre os logos */
+    min-height: 50px; /* Altura mínima para manter o layout */
+}
+
+.pdf-logo {
+    max-width: 120px;
+    max-height: 50px;
+    object-fit: contain;
+}
+
+/* Quando houver apenas um logo, ele pode ser um pouco maior */
+.pdf-logo.single-logo {
+    max-width: 300px;
+    max-height: 80px;
+}
