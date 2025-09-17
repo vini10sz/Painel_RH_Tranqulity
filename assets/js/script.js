@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final Corrigida
+// assets/js/script.js - Versão Final Corrigida e Completa
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -22,7 +22,22 @@ document.addEventListener('DOMContentLoaded', function() {
     let dashboardInitialized = false;
     const API_URL = 'backend/api.php';
     
-    Chart.register(ChartDataLabels); // REGISTRO DO PLUGIN DO GRÁFICO
+    let currentEmployeeId = null;
+    let currentFolderId = null;
+    let breadcrumbHistory = [];
+
+    const empresas = ["Tranquility", "GSM", "Protector", "GS1"];
+    const unidades = [
+        "Prevent Sênior - Hospital Madri", "IGESP - Hospital Praia Grande", "IGESP - Pronto Atendimento Santos",
+        "IGESP - Pronto Atendimento Santo André", "IGESP - Pronto Atendimento Congonhas", "IGESP - Pronto Atendimento Anália Franco",
+        "Grupo Santa Marcelina Itaquera - Sede", "Grupo Santa Marcelina Itaquera - AME", "Grupo Santa Marcelina Itaquera - Instituto",
+        "Grupo Santa Marcelina Itaquera - Torre", "Grupo Santa Marcelina Itaquera - Faculdade Santa Marcelina",
+        "Grupo Santa Marcelina Regionais - Hospital Cidade Tiradentes", "Grupo Santa Marcelina Regionais - Hospital Itaim",
+        "Grupo Santa Marcelina Regionais - Hospital Itaquá", "Grupo Santa Marcelina Regionais - Hospital Neomater SBC",
+        "Hapvida", "Espaço HAOC", "São Carlos - Santa Casa", "São Carlos - CID", "São Carlos - Onovolab"
+    ];
+
+    Chart.register(ChartDataLabels);
 
     // =================================================================================
     // 2. LÓGICA DO DARK MODE
@@ -45,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================================================================
     // 3. FUNÇÕES HELPERS (API, Toast, etc)
     // =================================================================================
+
+    function getLocalDateAsString(date = new Date()) {
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        return localDate.toISOString().split('T')[0];
+    }
 
     async function fetchAddressByCep(cep) {
         const cleanCep = cep.replace(/\D/g, '');
@@ -153,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
             masterEmployeeList = result.data;
             const fullList = [...masterEmployeeList.ativos, ...masterEmployeeList.inativos];
             
-            populateLocationFilters(fullList);
+            // Note: Não populamos mais os filtros de unidade aqui, pois eles são estáticos
             filterAndRenderLists(); 
         }
     }
@@ -169,6 +190,35 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('children-list').appendChild(entryDiv);
         entryDiv.querySelector('.remove-child-btn').addEventListener('click', () => {
             entryDiv.remove();
+        });
+    }
+    
+    async function handleFileUpload(file) {
+        if (!file || !currentEmployeeId || !currentFolderId) return;
+        
+        const formData = new FormData();
+        formData.append('action', 'upload_arquivo');
+        formData.append('pasta_id', currentFolderId);
+        formData.append('arquivo', file);
+
+        showToast('Enviando arquivo...', 'info');
+        const result = await postAPI(formData);
+        if (result && result.success) {
+            showToast('Arquivo enviado com sucesso!');
+            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+        }
+    }
+
+    function populateSelectWithOptions(selector, options, defaultLabel) {
+        document.querySelectorAll(selector).forEach(select => {
+            if (!select) return;
+            select.innerHTML = `<option value="">${defaultLabel}</option>`;
+            options.forEach(opt => {
+                const optionEl = document.createElement('option');
+                optionEl.value = opt;
+                optionEl.textContent = opt;
+                select.appendChild(optionEl);
+            });
         });
     }
 
@@ -218,6 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
             const filters = {
                 nome: container.querySelector('.search-input').value.toLowerCase(),
+                empresa: container.querySelector('.company-filter')?.value,
                 unidade: container.querySelector('.location-filter').value,
                 genero: container.querySelector('.gender-filter')?.value,
                 status_filhos: container.querySelector('.children-filter')?.value,
@@ -235,7 +286,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (filters.nome) {
                 filteredList = filteredList.filter(func => func.nome && func.nome.toLowerCase().includes(filters.nome));
             }
-            if (filters.unidade && filters.unidade !== 'Todos') {
+            if (filters.empresa) {
+                filteredList = filteredList.filter(func => func.empresa === filters.empresa);
+            }
+            if (filters.unidade) {
                 filteredList = filteredList.filter(func => func.local === filters.unidade);
             }
             if (filters.genero) {
@@ -254,8 +308,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 filteredList = filteredList.filter(func => func[filters.vencimento] && new Date(func[filters.vencimento] + 'T12:00:00') < new Date());
             }
             if (type === 'inativos' && filters.recontratacao) {
-                const normalizedFilter = filters.recontratacao.toLowerCase().replace('ã', 'a');
-                filteredList = filteredList.filter(func => func.elegivel_recontratacao && func.elegivel_recontratacao.toLowerCase().replace('ã', 'a') === normalizedFilter);
+                const normalizedFilter = filters.recontratacao.toLowerCase();
+                filteredList = filteredList.filter(func => {
+                    if (!func.elegivel_recontratacao) return false;
+                    let dbValue = func.elegivel_recontratacao.toLowerCase();
+                    if (dbValue === 'não') dbValue = 'nao';
+                    return dbValue === normalizedFilter;
+                });
             }
     
             if (filters.status_filhos) {
@@ -317,51 +376,50 @@ document.addEventListener('DOMContentLoaded', function() {
         lista.forEach(func => gridElement.appendChild(createEmployeeCard(func)));
     }
 
-    function createEmployeeCard(func) {
-        const card = document.createElement('div');
-        card.className = `funcionario-card ${func.status}`;
-        card.dataset.id = func.id;
-        const dataLabel = func.status === 'ativo' ? 'Admissão' : 'Demissão';
-        const dataValue = func.status === 'ativo' ? func.data_admissao : func.data_demissao;
-        const formattedDate = dataValue && dataValue !== '0000-00-00' ? new Date(dataValue + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado';
-        
-        let seloHtml = '';
-        if (func.status === 'inativo' && func.elegivel_recontratacao) {
-            let statusClass = func.elegivel_recontratacao.toLowerCase();
-            if (statusClass === 'não') {
-                statusClass = 'nao';
-            }
-            seloHtml = `<div class="recontratacao-selo ${statusClass}">${func.elegivel_recontratacao}</div>`;
-        }
+        function createEmployeeCard(func) {
+            const card = document.createElement('div');
+            card.className = `funcionario-card ${func.status}`;
+            card.dataset.id = func.id;
 
-        card.innerHTML = `
-            ${seloHtml}
-            <div class="funcionario-card-content" data-action="open-details">
-                <h3>${func.nome}</h3>
-                <p><i class="fas fa-briefcase"></i>${func.funcao || 'Não informado'}</p>
-                <p><i class="fas fa-map-marker-alt"></i>${func.local || 'Não informado'}</p>
-                <p><i class="fas fa-calendar-check"></i>${dataLabel}: ${formattedDate}</p>
-            </div>
-            <div class="card-actions">
-                <button class="card-btn" data-action="edit" title="Editar"><i class="fas fa-edit"></i></button>
-                ${func.status === 'ativo' ? `<button class="card-btn" data-action="terminate" title="Encerrar Contrato"><i class="fas fa-user-slash"></i></button>` : ''}
-                <button class="card-btn" data-action="delete" title="Excluir"><i class="fas fa-trash"></i></button>
-            </div>`;
-        return card;
-    }
-    
-    function populateLocationFilters(funcionariosList) {
-        const selects = document.querySelectorAll('.location-filter, #unit-filter');
-        const locations = [...new Set(funcionariosList.map(f => f.local).filter(Boolean))].sort();
-        
-        selects.forEach(select => {
-            if(!select) return;
-            const currentValue = select.value;
-            select.innerHTML = `<option value="Todos">Todas as Unidades</option>`;
-            locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-            select.value = currentValue && locations.includes(currentValue) ? currentValue : 'Todos';
-        });
-    }
+            // Adiciona a classe da empresa para a cor dinâmica
+            if (func.empresa) {
+                const empresaClass = `empresa-${func.empresa.toLowerCase().replace(/\s+/g, '')}`;
+                card.classList.add(empresaClass);
+            }
+            
+            const dataLabel = func.status === 'ativo' ? 'Admissão' : 'Demissão';
+            const dataValue = func.status === 'ativo' ? func.data_admissao : func.data_demissao;
+            const formattedDate = dataValue && dataValue !== '0000-00-00' ? new Date(dataValue + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado';
+            
+            let seloHtml = '';
+            if (func.status === 'inativo' && func.elegivel_recontratacao) {
+                let statusClass = func.elegivel_recontratacao.toLowerCase();
+                if (statusClass === 'não') statusClass = 'nao';
+                seloHtml = `<div class="recontratacao-selo ${statusClass}">${func.elegivel_recontratacao}</div>`;
+            }
+            
+            let seloEmpresaHtml = '';
+            if (func.empresa) {
+                const empresaClass = func.empresa.toLowerCase().replace(/\s+/g, '');
+                seloEmpresaHtml = `<div class="empresa-selo ${empresaClass}">${func.empresa}</div>`;
+            }
+
+            card.innerHTML = `
+                ${seloHtml}
+                ${seloEmpresaHtml}
+                <div class="funcionario-card-content" data-action="open-details">
+                    <h3>${func.nome}</h3>
+                    <p><i class="fas fa-briefcase"></i>${func.funcao || 'Não informado'}</p>
+                    <p><i class="fas fa-building"></i>${func.local || 'Não informado'}</p>
+                    <p><i class="fas fa-calendar-check"></i>${dataLabel}: ${formattedDate}</p>
+                </div>
+                <div class="card-actions">
+                    <button class="card-btn" data-action="edit" title="Editar"><i class="fas fa-edit"></i></button>
+                    ${func.status === 'ativo' ? `<button class="card-btn" data-action="terminate" title="Encerrar Contrato"><i class="fas fa-user-slash"></i></button>` : ''}
+                    <button class="card-btn" data-action="delete" title="Excluir"><i class="fas fa-trash"></i></button>
+                </div>`;
+            return card;
+        }
     
     // =================================================================================
     // 5. LÓGICA DE MODAIS E FORMULÁRIO WIZARD
@@ -376,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function validateStep(stepNumber) {
         const step = formWizard.querySelector(`.form-step[data-step="${stepNumber}"]`);
-        const inputs = step.querySelectorAll('input[required]');
+        const inputs = step.querySelectorAll('input[required], select[required]');
         let isValid = true;
         
         inputs.forEach(input => {
@@ -430,10 +488,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function openEmployeeModal(func) {
+        currentEmployeeId = func.id;
         const tabPessoal = employeeModal.querySelector('#tab-pessoal');
         document.getElementById('modal-employee-name').textContent = func.nome;
         document.getElementById('modal-employee-role').textContent = func.funcao;
         
+        document.getElementById('file-explorer-view').classList.add('hidden');
+        document.getElementById('main-folder-view').classList.remove('hidden');
+
         const tableBody = document.getElementById('validade-table-body');
         tableBody.innerHTML = '';
         const hoje = new Date();
@@ -557,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result && result.data) {
                 const func = result.data;
                 const formFields = [
-                    'nome', 'funcao', 'local', 'data_movimentacao', 'validade_cnh', 'validade_exame_medico', 
+                    'nome', 'funcao', 'empresa', 'local', 'data_movimentacao', 'validade_cnh', 'validade_exame_medico', 
                     'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia', 
                     'data_nascimento', 'rg', 'cpf', 'estado_civil', 'cnh_numero', 'telefone_1', 'telefone_2', 'telefone_3',
                     'email_pessoal', 'genero', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado'
@@ -598,10 +660,82 @@ document.addEventListener('DOMContentLoaded', function() {
         formModal.classList.remove('hidden');
     }
 
+    async function renderFileExplorer(funcionarioId, pastaId, breadcrumb) {
+        currentEmployeeId = funcionarioId;
+        currentFolderId = pastaId;
+        breadcrumbHistory = breadcrumb;
+
+        document.getElementById('main-folder-view').classList.add('hidden');
+        document.getElementById('file-explorer-view').classList.remove('hidden');
+        
+        const grid = document.getElementById('file-explorer-grid');
+        const breadcrumbNav = document.getElementById('breadcrumb');
+        grid.innerHTML = '<p>Carregando...</p>';
+
+        const result = await fetchAPI(`action=listar_pastas_e_arquivos&funcionario_id=${funcionarioId}&parent_id=${pastaId}`);
+        
+        if (result && result.data) {
+            grid.innerHTML = '';
+            currentFolderId = result.data.current_folder_id;
+
+            breadcrumbNav.innerHTML = breadcrumb.map((p, i) => 
+                i === breadcrumb.length - 1 
+                ? `<span>${p.nome}</span>` 
+                : `<a href="#" data-folder-id="${p.id}" data-breadcrumb-index="${i}">${p.nome}</a> > `
+            ).join('');
+
+            result.data.pastas.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'explorer-item folder';
+                item.dataset.folderId = p.id;
+                item.innerHTML = `
+                    <div class="item-actions">
+                        <button class="action-btn edit" title="Renomear"><i class="fas fa-pen"></i></button>
+                        <button class="action-btn delete" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <i class="fas fa-folder"></i>
+                    <span>${p.nome_pasta}</span>
+                `;
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.item-actions')) return;
+                    
+                    const newBreadcrumb = [...breadcrumb, { id: p.id, nome: p.nome_pasta }];
+                    renderFileExplorer(funcionarioId, p.id, newBreadcrumb);
+                });
+                grid.appendChild(item);
+            });
+
+            result.data.documentos.forEach(d => {
+                const item = document.createElement('div');
+                item.className = 'explorer-item file';
+                item.dataset.documentId = d.id;
+                let iconClass = 'fa-file';
+                if (d.tipo_arquivo.includes('pdf')) iconClass = 'fa-file-pdf';
+                if (d.tipo_arquivo.includes('image')) iconClass = 'fa-file-image';
+
+                item.innerHTML = `
+                    <div class="item-actions">
+                        <button class="action-btn delete" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <i class="fas ${iconClass}"></i>
+                    <span>${d.nome_original}</span>
+                `;
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.item-actions')) return;
+                    window.open(d.caminho_arquivo, '_blank');
+                });
+                grid.appendChild(item);
+            });
+
+            if (grid.innerHTML === '') {
+                grid.innerHTML = '<p>Esta pasta está vazia.</p>';
+            }
+        }
+    }
+
     // =================================================================================
     // 6. LÓGICA DO DASHBOARD
     // =================================================================================
-    
     function updateDashboardSummary() {
         if(document.getElementById('total-ativos')) {
             document.getElementById('total-ativos').textContent = masterEmployeeList.ativos.length;
@@ -622,10 +756,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupDashboardListeners() {
         const datePicker = document.getElementById('date-picker');
         if(datePicker && !datePicker.value) {
-            datePicker.valueAsDate = new Date();
+            datePicker.value = getLocalDateAsString();
         }
         datePicker.addEventListener('change', loadDashboardData);
         document.getElementById('unit-filter').addEventListener('change', loadDashboardData);
+        document.getElementById('company-filter-dashboard').addEventListener('change', loadDashboardData);
         document.querySelectorAll('#status-section .summary-card input').forEach(input => {
             input.addEventListener('input', updateChartAndTable);
         });
@@ -637,20 +772,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function loadDashboardData() {
         const datePicker = document.getElementById('date-picker');
+        const companyFilter = document.getElementById('company-filter-dashboard');
         const unitFilter = document.getElementById('unit-filter');
         const displayDate = document.getElementById('dashboard-display-date');
         const data = datePicker.value;
+        const empresa = companyFilter.value;
         const unidade = unitFilter.value;
         const dateObj = new Date(data + 'T12:00:00');
         displayDate.textContent = dateObj.toLocaleDateString('pt-BR', { dateStyle: 'full' });
         
         const unitTotalCountEl = document.getElementById('unit-total-count');
         if (unitTotalCountEl) {
-            const totalNaUnidade = masterEmployeeList.ativos.filter(f => unidade === 'Todos' || f.local === unidade).length;
+            let listToCount = masterEmployeeList.ativos;
+            if (empresa) {
+                listToCount = listToCount.filter(f => f.empresa === empresa);
+            }
+            const totalNaUnidade = listToCount.filter(f => !unidade || f.local === unidade).length;
             unitTotalCountEl.textContent = totalNaUnidade;
         }
 
-        const result = await fetchAPI(`action=get_status_diario&data=${data}&unidade=${unidade}`);
+        const result = await fetchAPI(`action=get_status_diario&data=${data}&unidade=${unidade || 'Todos'}`);
         
         const inputs = {
             presentes: document.getElementById('input-presentes'),
@@ -734,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData();
         formData.append('action', 'save_status_diario');
         formData.append('data', document.getElementById('date-picker').value);
-        formData.append('unidade', document.getElementById('unit-filter').value);
+        formData.append('unidade', document.getElementById('unit-filter').value || 'Todos');
         formData.append('presentes', document.getElementById('input-presentes').value);
         formData.append('falta_injustificada', document.getElementById('input-falta_injustificada').value);
         formData.append('folga', document.getElementById('input-folga').value);
@@ -752,36 +893,71 @@ document.addEventListener('DOMContentLoaded', function() {
     function generatePDF() {
         const { jsPDF } = window.jspdf;
         const captureArea = document.getElementById('capture-area');
+        const logoContainer = captureArea.querySelector('#pdf-logo-container');
+        
+        // Guarda o HTML original para restaurar depois
+        const logoOriginalHtml = logoContainer.innerHTML;
+        
+        const empresaSelecionada = document.getElementById('company-filter-dashboard').value;
+        const empresasDisponiveis = ["Tranquility", "GSM", "Protector", "GS1"];
+
+        // Limpa o container de logos
+        logoContainer.innerHTML = '';
+
+        if (empresaSelecionada && empresaSelecionada !== 'Todas') {
+            // Se UMA empresa foi selecionada
+            const nomeLogo = empresaSelecionada.toLowerCase();
+            const logoImg = document.createElement('img');
+            logoImg.src = `assets/imagens/${nomeLogo}.png`;
+            logoImg.alt = `Logo ${empresaSelecionada}`;
+            logoImg.className = 'pdf-logo single-logo'; // Classe para um logo único ser maior
+            logoContainer.appendChild(logoImg);
+        } else {
+            // Se "Todas as Empresas" foi selecionado, mostra todos os logos
+            empresasDisponiveis.forEach(empresa => {
+                const nomeLogo = empresa.toLowerCase();
+                const logoImg = document.createElement('img');
+                logoImg.src = `assets/imagens/${nomeLogo}.png`;
+                logoImg.alt = `Logo ${empresa}`;
+                logoImg.className = 'pdf-logo';
+                logoContainer.appendChild(logoImg);
+            });
+        }
+
         const unit = document.getElementById('unit-filter').value;
         const date = document.getElementById('dashboard-display-date').textContent;
-
         const pdfSubtitle = captureArea.querySelector('.pdf-subtitle');
-        if(pdfSubtitle) pdfSubtitle.textContent = `Unidade: ${unit} - Data: ${date}`;
+        if (pdfSubtitle) pdfSubtitle.textContent = `Empresa: ${empresaSelecionada || 'Todas'} | Unidade: ${unit || 'Todas'} - Data: ${date}`;
         
         showToast('Gerando PDF, por favor aguarde...');
 
-        html2canvas(captureArea, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: body.classList.contains('dark-mode') ? '#1e1e3f' : '#ffffff'
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: 'a4'
+        setTimeout(() => {
+            html2canvas(captureArea, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: body.classList.contains('dark-mode') ? '#1e1e3f' : '#ffffff'
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth - 20, 0, undefined, 'FAST');
+                pdf.save(`Relatorio_Diario_${(empresaSelecionada || 'Geral').replace(' ', '_')}_${document.getElementById('date-picker').value}.pdf`);
+
+                // Restaura o logo original no HTML
+                logoContainer.innerHTML = logoOriginalHtml;
             });
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth - 20, 0, undefined, 'FAST');
-            pdf.save(`Relatorio_Diario_${unit.replace(/ /g, '_')}_${document.getElementById('date-picker').value}.pdf`);
-        });
+        }, 300); // Atraso para garantir o carregamento das imagens
     }
 
     function changeDay(offset) {
         const datePicker = document.getElementById('date-picker');
         const currentDate = new Date(datePicker.value + 'T12:00:00');
         currentDate.setDate(currentDate.getDate() + offset);
-        datePicker.valueAsDate = currentDate;
+        datePicker.value = getLocalDateAsString(currentDate);
         datePicker.dispatchEvent(new Event('change'));
     }
 
@@ -793,9 +969,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchAPI(`action=get_all_funcionarios`).then(result => {
             if (result && result.data) {
                 masterEmployeeList = result.data;
-                const fullList = [...masterEmployeeList.ativos, ...masterEmployeeList.inativos];
-                populateLocationFilters(fullList); 
-                handleRouteChange();
+                filterAndRenderLists(); 
             }
         });
         setupEventListeners();
@@ -804,6 +978,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupEventListeners() {
         setupInputMasks();
         
+        populateSelectWithOptions('.company-filter, #empresa, #company-filter-dashboard', empresas, 'Todas as Empresas');
+        populateSelectWithOptions('.location-filter, #local, #unit-filter', unidades, 'Todas as Unidades');
+
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 if (link.hash && !link.target) {
@@ -816,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('popstate', handleRouteChange);
 
         document.querySelectorAll('.filtros-container').forEach(container => {
-            const inputs = container.querySelectorAll('.search-input, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter');
+            const inputs = container.querySelectorAll('.search-input, .company-filter, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter');
             let timer;
             inputs.forEach(input => {
                 const eventType = ['SELECT', 'INPUT'].includes(input.tagName) ? 'change' : 'input';
@@ -946,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             break;
                         case 'terminate':
-                            const dataDemissao = prompt("Insira a data de demissão (AAAA-MM-DD):", new Date().toISOString().split('T')[0]);
+                            const dataDemissao = prompt("Insira a data de demissão (AAAA-MM-DD):", getLocalDateAsString());
                             if (dataDemissao && /^\d{4}-\d{2}-\d{2}$/.test(dataDemissao)) {
                                 const motivoDemissao = prompt("Insira o motivo do desligamento:", "");
                                 const elegivelOptions = ['Sim', 'Não', 'Avaliar'];
@@ -974,17 +1151,127 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if(employeeModal) {
-            employeeModal.querySelector('.modal-tabs').addEventListener('click', function(event) {
-                const clickedTab = event.target.closest('.tab-btn');
-                if (!clickedTab) return;
-                const tabId = clickedTab.dataset.tab;
-                employeeModal.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                employeeModal.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                clickedTab.classList.add('active');
-                document.getElementById(tabId).classList.add('active');
+            employeeModal.addEventListener('click', async (e) => {
+                const target = e.target;
+                const item = target.closest('.explorer-item');
+
+                const tabBtn = target.closest('.tab-btn');
+                const folder = target.closest('#main-folder-view .folder');
+                const breadcrumbLink = target.closest('#breadcrumb a');
+                const backBtn = target.closest('#back-to-folders-btn');
+                const createFolderBtn = target.closest('#create-folder-btn');
+                const editFolderBtn = target.closest('.item-actions .edit');
+                const deleteFolderBtn = target.closest('.item-actions .delete');
+
+                if (tabBtn) {
+                    const tabId = tabBtn.dataset.tab;
+                    employeeModal.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    employeeModal.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    tabBtn.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                }
+                
+                if (folder && currentEmployeeId) {
+                    const folderName = folder.dataset.folderName;
+                    const result = await fetchAPI(`action=get_folder_id_by_name&funcionario_id=${currentEmployeeId}&folder_name=${folderName}`);
+                    
+                    if (result.success) {
+                        const breadcrumb = [{ id: null, nome: 'Raiz' }, { id: result.folder_id, nome: folderName }];
+                        renderFileExplorer(currentEmployeeId, result.folder_id, breadcrumb);
+                    } else {
+                        showToast('Erro ao encontrar a pasta.', 'error');
+                    }
+                }
+
+                if (breadcrumbLink) {
+                    e.preventDefault();
+                    const folderId = breadcrumbLink.dataset.folderId === 'null' ? null : breadcrumbLink.dataset.folderId;
+                    const breadcrumbIndex = parseInt(breadcrumbLink.dataset.breadcrumbIndex);
+                    const newBreadcrumb = breadcrumbHistory.slice(0, breadcrumbIndex + 1);
+                    renderFileExplorer(currentEmployeeId, folderId, newBreadcrumb);
+                }
+
+                if (backBtn) {
+                    if (breadcrumbHistory.length > 2) {
+                        breadcrumbHistory.pop();
+                        const previousFolder = breadcrumbHistory[breadcrumbHistory.length - 1];
+                        renderFileExplorer(currentEmployeeId, previousFolder.id, breadcrumbHistory);
+                    } else {
+                        document.getElementById('file-explorer-view').classList.add('hidden');
+                        document.getElementById('main-folder-view').classList.remove('hidden');
+                    }
+                }
+
+                if (createFolderBtn) {
+                    const nomePasta = prompt("Digite o nome da nova subpasta:");
+                    if (nomePasta && currentEmployeeId && currentFolderId) {
+                        const formData = new FormData();
+                        formData.append('action', 'criar_pasta');
+                        formData.append('funcionario_id', currentEmployeeId);
+                        formData.append('parent_id', currentFolderId);
+                        formData.append('nome_pasta', nomePasta);
+                        if (await postAPI(formData)) {
+                            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                        }
+                    }
+                }
+
+                if (editFolderBtn) {
+                    const folderId = item.dataset.folderId;
+                    const spanNome = item.querySelector('span');
+                    const nomeAtual = spanNome.textContent;
+                    
+                    const novoNome = prompt("Digite o novo nome da pasta:", nomeAtual);
+                    if (novoNome && novoNome !== nomeAtual) {
+                        const formData = new FormData();
+                        formData.append('action', 'renomear_pasta');
+                        formData.append('pasta_id', folderId);
+                        formData.append('novo_nome', novoNome);
+                        if (await postAPI(formData)) {
+                            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                            showToast('Pasta renomeada com sucesso!');
+                        }
+                    }
+                }
+                
+                if (deleteFolderBtn) {
+                    const folderId = item.dataset.folderId;
+                    const documentId = item.dataset.documentId;
+                    
+                    if (folderId) {
+                        const nomePasta = item.querySelector('span').textContent;
+                        if (confirm(`Tem certeza que deseja excluir a subpasta "${nomePasta}"?\n\nAVISO: A pasta deve estar vazia.`)) {
+                            const formData = new FormData();
+                            formData.append('action', 'excluir_pasta');
+                            formData.append('pasta_id', folderId);
+                            const result = await postAPI(formData);
+                            if (result && result.success) {
+                                renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                                showToast('Pasta excluída com sucesso!');
+                            }
+                        }
+                    } else if (documentId) {
+                        if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+                            const formData = new FormData();
+                            formData.append('action', 'excluir_arquivo');
+                            formData.append('documento_id', documentId);
+                            if (await postAPI(formData)) {
+                                renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                                showToast('Arquivo excluído com sucesso!');
+                            }
+                        }
+                    }
+                }
             });
         }
     
+        document.getElementById('file-upload-input')?.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+                e.target.value = '';
+            }
+        });
+
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', e => {
                 if (e.target === modal || e.target.closest('.modal-close-btn')) {
@@ -1005,11 +1292,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     subFilter.classList.remove('hidden');
                 } else {
                     subFilter.classList.add('hidden');
+                    // Limpa os campos de idade se o usuário mudar a opção
                     subFilter.querySelector('.children-age-min-filter').value = '';
                     subFilter.querySelector('.children-age-max-filter').value = '';
                 }
             });
         });
+
+        const temFilhosSelect = document.getElementById('tem_filhos');
+        const childrenContainer = document.getElementById('children-dynamic-container');
+        const addChildBtn = document.getElementById('add-child-btn');
+
+        if (temFilhosSelect) {
+            temFilhosSelect.addEventListener('change', () => {
+                if (temFilhosSelect.value === 'sim') {
+                    childrenContainer.classList.remove('hidden');
+                    if (document.getElementById('children-list').children.length === 0) {
+                        createChildEntry();
+                    }
+                } else {
+                    childrenContainer.classList.add('hidden');
+                    document.getElementById('children-list').innerHTML = '';
+                }
+            });
+        }
+        
+        if (addChildBtn) {
+            addChildBtn.addEventListener('click', createChildEntry);
+        }
 
         const estadoCivilSelect = document.getElementById('estado_civil');
         const spouseContainer = document.getElementById('spouse-dynamic-container');
