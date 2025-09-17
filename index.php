@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel RH - Tranquility Parking Lot</title>
+    <title>Painel RH - Grupo Tranquility</title>
     <link rel="icon" href="assets/imagens/imagens.png" sizes="32x32" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,6 +69,7 @@
                     <div class="filtros-container">
                         <div class="filtros-principais">
                             <div class="filter-group"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="search-input" placeholder="Pesquisar por nome..."></div>
+                            <div class="filter-group"><i class="fa-solid fa-sitemap"></i><select class="company-filter"></select></div>
                             <div class="filter-group"><i class="fa-solid fa-building"></i><select class="location-filter"></select></div>
                             <button class="advanced-filter-btn">
                                 <i class="fas fa-sliders-h"></i> Filtros Avançados <span class="filter-count"></span>
@@ -142,6 +143,7 @@
                       <div class="filtros-container">
                          <div class="filtros-principais">
                              <div class="filter-group"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="search-input" placeholder="Pesquisar por nome..."></div>
+                             <div class="filter-group"><i class="fa-solid fa-sitemap"></i><select class="company-filter"></select></div>
                              <div class="filter-group"><i class="fa-solid fa-building"></i><select class="location-filter"></select></div>
                              <button class="advanced-filter-btn">
                                  <i class="fas fa-sliders-h"></i> Filtros Avançados <span class="filter-count"></span>
@@ -229,13 +231,12 @@
                     </div>
                     <div class="dashboard-controls">
                         <div class="control-group date-navigation"><button id="prev-day-btn" title="Dia Anterior"><i class="fas fa-chevron-left"></i></button><input type="date" id="date-picker"><button id="next-day-btn" title="Próximo Dia"><i class="fas fa-chevron-right"></i></button></div>
+                        <div class="control-group"><label><i class="fas fa-sitemap"></i></label><select id="company-filter-dashboard"></select></div>
                         <div class="control-group unit-filter-container"><label for="unit-filter"><i class="fas fa-building"></i></label><select id="unit-filter"></select></div>
-                        
                         <div class="control-group unit-total">
                             <i class="fas fa-users"></i>
                             <span>Total na Unidade: <strong id="unit-total-count">0</strong></span>
                         </div>
-
                         <div class="control-group action-buttons"><button id="save-data-btn" class="action-btn save"><i class="fas fa-save"></i> Gravar</button><button id="generate-pdf-btn" class="action-btn pdf"><i class="fas fa-file-pdf"></i> Gerar PDF</button></div>
                     </div>
                     
@@ -250,7 +251,9 @@
                     </div>
                     <div id="capture-area">
                         <div class="chart-header">
-                            <img src="assets/imagens/imagens.png" alt="Logo Tranquility" class="pdf-logo">
+                        <div id="pdf-logo-container" class="pdf-logo-container">
+                            <img src="assets/imagens/imagens.png" alt="Logo Principal" class="pdf-logo">
+                        </div>
                             <div class="pdf-title-container">
                                 <h2 class="pdf-main-title">Relatório de Status Diário</h2>
                                 <p class="pdf-subtitle"></p>
@@ -309,17 +312,32 @@
                     <div id="tab-pessoal" class="tab-content">
                         </div>
                     <div id="tab-pastas" class="tab-content">
-                        <h3>Documentos e Pastas</h3>
-                        <div class="folder-grid">
-                            <div class="folder"><i class="fas fa-file-signature"></i><span>Contrato</span></div>
-                            <div class="folder"><i class="fas fa-file-medical"></i><span>Atestado</span></div>
-                            <div class="folder"><i class="fas fa-clock"></i><span>Ponto</span></div>
-                            <div class="folder"><i class="fas fa-file-invoice-dollar"></i><span>Holerite</span></div>
-                            <div class="folder"><i class="fas fa-exclamation-triangle"></i><span>Advertência</span></div>
-                            <div class="folder"><i class="fas fa-chalkboard-teacher"></i><span>Treinamento</span></div>
-                            <div class="folder"><i class="fas fa-car-crash"></i><span>Sinistro</span></div>
-                            <div class="folder"><i class="fas fa-id-card"></i><span>Documentos</span></div>
-                            <div class="folder"><i class="fas fa-folder-open"></i><span>Outros</span></div>
+                        <div id="main-folder-view">
+                            <h3>Documentos e Pastas</h3>
+                            <div class="folder-grid">
+                                <div class="folder" data-folder-name="Atestado"><i class="fas fa-file-medical"></i><span>Atestado</span></div>
+                                <div class="folder" data-folder-name="Contrato"><i class="fas fa-file-signature"></i><span>Contrato</span></div>
+                                <div class="folder" data-folder-name="Disciplinar"><i class="fas fa-gavel"></i><span>Disciplinar</span></div>
+                                <div class="folder" data-folder-name="Documentos Pessoais"><i class="fas fa-id-card"></i><span>Doc. Pessoais</span></div>
+                                <div class="folder" data-folder-name="Férias"><i class="fas fa-plane-departure"></i><span>Férias</span></div>
+                                <div class="folder" data-folder-name="Holerites"><i class="fas fa-file-invoice-dollar"></i><span>Holerites</span></div>
+                                <div class="folder" data-folder-name="Ponto"><i class="fas fa-clock"></i><span>Ponto</span></div>
+                                <div class="folder" data-folder-name="Sinistro"><i class="fas fa-car-crash"></i><span>Sinistro</span></div>
+                                <div class="folder" data-folder-name="Treinamento"><i class="fas fa-chalkboard-teacher"></i><span>Treinamento</span></div>
+                                <div class="folder" data-folder-name="Outros"><i class="fas fa-folder-open"></i><span>Outros</span></div>
+                            </div>
+                        </div>
+                        <div id="file-explorer-view" class="hidden">
+                            <div id="file-explorer-header">
+                                <div id="breadcrumb"></div>
+                                <div id="file-explorer-actions">
+                                    <button id="back-to-folders-btn"><i class="fas fa-arrow-left"></i> Voltar</button>
+                                    <button id="create-folder-btn"><i class="fas fa-folder-plus"></i> Criar Subpasta</button>
+                                    <label for="file-upload-input" id="upload-file-btn"><i class="fas fa-upload"></i> Fazer Upload</label>
+                                    <input type="file" id="file-upload-input" class="hidden">
+                                </div>
+                            </div>
+                            <div id="file-explorer-grid"></div>
                         </div>
                     </div>
                 </div>
@@ -357,7 +375,8 @@
                             <div class="form-grid">
                                 <div class="form-group"> <label for="nome">Nome Completo</label> <input type="text" id="nome" name="nome" required> </div>
                                 <div class="form-group"> <label for="funcao">Função</label> <input type="text" id="funcao" name="funcao" required> </div>
-                                <div class="form-group"> <label for="local">Unidade</label> <input type="text" id="local" name="local" required> </div>
+                                <div class="form-group"> <label for="empresa">Empresa</label> <select id="empresa" name="empresa" required></select> </div>
+                                <div class="form-group"> <label for="local">Unidade</label> <select id="local" name="local" required></select> </div>
                                 <div class="form-group"> <label for="data_movimentacao" id="data_movimentacao_label">Data</label> <input type="date" id="data_movimentacao" name="data_movimentacao" required> </div>
                             </div>
                         </div>
