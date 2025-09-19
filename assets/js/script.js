@@ -107,10 +107,15 @@ document.addEventListener('DOMContentLoaded', function() {
     async function fetchAPI(params) {
         try {
             const response = await fetch(`${API_URL}?${params}`, { cache: "no-store" });
+            if (response.status === 401) {
+                loginContainer.classList.remove('hidden');
+                appWrapper.classList.add('hidden');
+                return null;
+            }
             if (!response.ok) throw new Error(`Erro de rede: ${response.status}`);
             const result = await response.json();
-            if (result.success === false) throw new Error(result.message || 'Erro desconhecido na API.');
             return result;
+            
         } catch (error) {
             console.error("Erro na chamada da API:", error);
             showToast(error.message, 'error');
@@ -121,6 +126,11 @@ document.addEventListener('DOMContentLoaded', function() {
     async function postAPI(formData) {
         try {
             const response = await fetch(API_URL, { method: 'POST', body: formData });
+            if (response.status === 401) {
+                loginContainer.classList.remove('hidden');
+                appWrapper.classList.add('hidden');
+                return null;
+            }
             if (!response.ok) throw new Error(`Erro de rede: ${response.status}`);
             const result = await response.json();
             if (!result.success) throw new Error(result.message || 'Erro ao enviar dados.');
@@ -172,9 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await fetchAPI('action=get_all_funcionarios');
         if (result && result.data) {
             masterEmployeeList = result.data;
-            const fullList = [...masterEmployeeList.ativos, ...masterEmployeeList.inativos];
-            
-            // Note: Não populamos mais os filtros de unidade aqui, pois eles são estáticos
             filterAndRenderLists(); 
         }
     }
@@ -212,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateSelectWithOptions(selector, options, defaultLabel) {
         document.querySelectorAll(selector).forEach(select => {
             if (!select) return;
+            const currentValue = select.value;
             select.innerHTML = `<option value="">${defaultLabel}</option>`;
             options.forEach(opt => {
                 const optionEl = document.createElement('option');
@@ -219,7 +227,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 optionEl.textContent = opt;
                 select.appendChild(optionEl);
             });
+            select.value = currentValue;
         });
+    }
+    
+    function showConfirmationModal(title, message, keyword, onConfirm) {
+        const modal = document.getElementById('modal-confirmacao');
+        if (!modal) return;
+
+        modal.querySelector('#titulo-confirmacao').textContent = title;
+        modal.querySelector('#mensagem-confirmacao').innerHTML = message;
+        modal.querySelector('#palavra-chave-confirmacao').textContent = keyword;
+
+        const input = modal.querySelector('#input-confirmacao');
+        const confirmBtn = modal.querySelector('.confirm-btn');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+        const closeBtn = modal.querySelector('.modal-close-btn');
+
+        input.value = '';
+        confirmBtn.disabled = true;
+        
+        const inputHandler = () => {
+            confirmBtn.disabled = input.value !== keyword;
+        };
+        input.addEventListener('input', inputHandler);
+
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        newConfirmBtn.disabled = true;
+
+        const confirmHandler = () => {
+            onConfirm();
+            modal.classList.add('hidden');
+            input.removeEventListener('input', inputHandler);
+        };
+        newConfirmBtn.addEventListener('click', confirmHandler, { once: true });
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            input.removeEventListener('input', inputHandler);
+        };
+
+        cancelBtn.onclick = closeModal;
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        };
+        
+        modal.classList.remove('hidden');
     }
 
     // =================================================================================
@@ -269,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const filters = {
                 nome: container.querySelector('.search-input').value.toLowerCase(),
                 empresa: container.querySelector('.company-filter')?.value,
-                unidade: container.querySelector('.location-filter').value,
+                unidade: container.querySelector('.location-filter')?.value,
                 genero: container.querySelector('.gender-filter')?.value,
                 status_filhos: container.querySelector('.children-filter')?.value,
                 idade_filho_min: container.querySelector('.children-age-min-filter')?.value,
@@ -376,50 +433,49 @@ document.addEventListener('DOMContentLoaded', function() {
         lista.forEach(func => gridElement.appendChild(createEmployeeCard(func)));
     }
 
-        function createEmployeeCard(func) {
-            const card = document.createElement('div');
-            card.className = `funcionario-card ${func.status}`;
-            card.dataset.id = func.id;
+    function createEmployeeCard(func) {
+        const card = document.createElement('div');
+        card.className = `funcionario-card ${func.status}`;
+        card.dataset.id = func.id;
 
-            // Adiciona a classe da empresa para a cor dinâmica
-            if (func.empresa) {
-                const empresaClass = `empresa-${func.empresa.toLowerCase().replace(/\s+/g, '')}`;
-                card.classList.add(empresaClass);
-            }
-            
-            const dataLabel = func.status === 'ativo' ? 'Admissão' : 'Demissão';
-            const dataValue = func.status === 'ativo' ? func.data_admissao : func.data_demissao;
-            const formattedDate = dataValue && dataValue !== '0000-00-00' ? new Date(dataValue + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado';
-            
-            let seloHtml = '';
-            if (func.status === 'inativo' && func.elegivel_recontratacao) {
-                let statusClass = func.elegivel_recontratacao.toLowerCase();
-                if (statusClass === 'não') statusClass = 'nao';
-                seloHtml = `<div class="recontratacao-selo ${statusClass}">${func.elegivel_recontratacao}</div>`;
-            }
-            
-            let seloEmpresaHtml = '';
-            if (func.empresa) {
-                const empresaClass = func.empresa.toLowerCase().replace(/\s+/g, '');
-                seloEmpresaHtml = `<div class="empresa-selo ${empresaClass}">${func.empresa}</div>`;
-            }
-
-            card.innerHTML = `
-                ${seloHtml}
-                ${seloEmpresaHtml}
-                <div class="funcionario-card-content" data-action="open-details">
-                    <h3>${func.nome}</h3>
-                    <p><i class="fas fa-briefcase"></i>${func.funcao || 'Não informado'}</p>
-                    <p><i class="fas fa-building"></i>${func.local || 'Não informado'}</p>
-                    <p><i class="fas fa-calendar-check"></i>${dataLabel}: ${formattedDate}</p>
-                </div>
-                <div class="card-actions">
-                    <button class="card-btn" data-action="edit" title="Editar"><i class="fas fa-edit"></i></button>
-                    ${func.status === 'ativo' ? `<button class="card-btn" data-action="terminate" title="Encerrar Contrato"><i class="fas fa-user-slash"></i></button>` : ''}
-                    <button class="card-btn" data-action="delete" title="Excluir"><i class="fas fa-trash"></i></button>
-                </div>`;
-            return card;
+        if (func.empresa) {
+            const empresaClass = `empresa-${func.empresa.toLowerCase().replace(/\s+/g, '')}`;
+            card.classList.add(empresaClass);
         }
+        
+        const dataLabel = func.status === 'ativo' ? 'Admissão' : 'Demissão';
+        const dataValue = func.status === 'ativo' ? func.data_admissao : func.data_demissao;
+        const formattedDate = dataValue && dataValue !== '0000-00-00' ? new Date(dataValue + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado';
+        
+        let seloHtml = '';
+        if (func.status === 'inativo' && func.elegivel_recontratacao) {
+            let statusClass = func.elegivel_recontratacao.toLowerCase();
+            if (statusClass === 'não') statusClass = 'nao';
+            seloHtml = `<div class="recontratacao-selo ${statusClass}">${func.elegivel_recontratacao}</div>`;
+        }
+        
+        let seloEmpresaHtml = '';
+        if (func.empresa) {
+            const empresaClass = func.empresa.toLowerCase().replace(/\s+/g, '');
+            seloEmpresaHtml = `<div class="empresa-selo ${empresaClass}">${func.empresa}</div>`;
+        }
+
+        card.innerHTML = `
+            ${seloHtml}
+            ${seloEmpresaHtml}
+            <div class="funcionario-card-content" data-action="open-details">
+                <h3>${func.nome}</h3>
+                <p><i class="fas fa-briefcase"></i>${func.funcao || 'Não informado'}</p>
+                <p><i class="fas fa-building"></i>${func.local || 'Não informado'}</p>
+                <p><i class="fas fa-calendar-check"></i>${dataLabel}: ${formattedDate}</p>
+            </div>
+            <div class="card-actions">
+                <button class="card-btn" data-action="edit" title="Editar"><i class="fas fa-edit"></i></button>
+                ${func.status === 'ativo' ? `<button class="card-btn" data-action="terminate" title="Encerrar Contrato"><i class="fas fa-user-slash"></i></button>` : ''}
+                <button class="card-btn" data-action="delete" title="Excluir"><i class="fas fa-trash"></i></button>
+            </div>`;
+        return card;
+    }
     
     // =================================================================================
     // 5. LÓGICA DE MODAIS E FORMULÁRIO WIZARD
@@ -961,10 +1017,23 @@ document.addEventListener('DOMContentLoaded', function() {
         datePicker.dispatchEvent(new Event('change'));
     }
 
+
     // =================================================================================
     // 7. EVENT LISTENERS GERAIS E INICIALIZAÇÃO
     // =================================================================================
     
+    async function checkLoginStatus() {
+        const result = await fetchAPI('action=check_session');
+        if (result && result.success) {
+            loginContainer.classList.add('hidden');
+            appWrapper.classList.remove('hidden');
+            initializeApp();
+        } else {
+            loginContainer.classList.remove('hidden');
+            appWrapper.classList.add('hidden');
+        }
+    }
+
     function initializeApp() {
         fetchAPI(`action=get_all_funcionarios`).then(result => {
             if (result && result.data) {
@@ -1002,6 +1071,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     timer = setTimeout(filterAndRenderLists, 350);
                 });
             });
+
+        document.querySelectorAll('.children-filter').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const parent = e.target.closest('.filter-group-dynamic');
+                const subFilter = parent.querySelector('.sub-filter');
+                if (e.target.value === 'sim') {
+                    subFilter.classList.remove('hidden');
+                } else {
+                    subFilter.classList.add('hidden');
+                    // Limpa os campos de idade se o usuário mudar a opção
+                    subFilter.querySelector('.children-age-min-filter').value = '';
+                    subFilter.querySelector('.children-age-max-filter').value = '';
+                }
+            });
+        });
             
             const advancedBtn = container.querySelector('.advanced-filter-btn');
             if(advancedBtn) {
@@ -1095,57 +1179,68 @@ document.addEventListener('DOMContentLoaded', function() {
     
         if(appWrapper) {
             appWrapper.addEventListener('click', async (e) => {
-                const addBtn = e.target.closest('.add-btn');
+                const target = e.target;
+                const addBtn = target.closest('.add-btn');
+                const cardAction = target.closest('[data-action]');
+                const card = target.closest('.funcionario-card');
+                const id = card ? card.dataset.id : null;
+
                 if (addBtn) {
-                    openFormModal(null, addBtn.dataset.status);
+                    const status = addBtn.dataset.status || 'ativo';
+                    openFormModal(null, status);
                     return;
                 }
-                const actionTarget = e.target.closest('[data-action]');
-                if(actionTarget) {
-                    const card = e.target.closest('.funcionario-card');
-                    if (!card) return;
-                    const funcId = card.dataset.id;
-                    const func = [...masterEmployeeList.ativos, ...masterEmployeeList.inativos].find(f => f.id == funcId);
-                    if (!func) return;
-        
-                    switch (actionTarget.dataset.action) {
-                        case 'open-details': openEmployeeModal(func); break;
-                        case 'edit': await openFormModal(funcId, func.status); break;
-                        case 'delete':
-                            if (confirm('Tem certeza que deseja excluir? Esta ação não pode ser desfeita.')) {
+
+                if (!cardAction || !id) return;
+
+                const action = cardAction.dataset.action;
+                const employeeData = (masterEmployeeList.ativos.find(f => f.id == id) || masterEmployeeList.inativos.find(f => f.id == id));
+
+                if (!employeeData) {
+                    showToast('Funcionário não encontrado.', 'error');
+                    return;
+                }
+
+                switch (action) {
+                    case 'open-details':
+                        openEmployeeModal(employeeData);
+                        break;
+                    case 'edit':
+                        openFormModal(id, employeeData.status);
+                        break;
+                    case 'terminate':
+                        const terminateModal = document.getElementById('modal-encerrar-contrato');
+                        document.getElementById('nome-funcionario-encerrar').textContent = employeeData.nome;
+                        const form = terminateModal.querySelector('form');
+                        form.reset();
+                        form.querySelector('.confirm-btn').disabled = true;
+                        form.dataset.employeeId = id;
+                        terminateModal.classList.remove('hidden');
+                        
+                        const confirmInput = document.getElementById('input-encerrar-confirmacao');
+                        confirmInput.addEventListener('input', () => {
+                            form.querySelector('.confirm-btn').disabled = confirmInput.value !== 'CONFIRMAR';
+                        });
+                        break;
+                    case 'delete':
+                        showConfirmationModal(
+                            'Confirmar Exclusão',
+                            `Você tem certeza que deseja excluir permanentemente o registro de <strong>${employeeData.nome}</strong>? Esta ação não pode ser desfeita.`,
+                            'EXCLUIR',
+                            async () => {
                                 const formData = new FormData();
                                 formData.append('action', 'delete_funcionario');
-                                formData.append('id', funcId);
-                                if (await postAPI(formData)) {
-                                    showToast('Funcionário excluído.');
-                                    refreshDataAndRender();
+                                formData.append('id', id);
+                                const result = await postAPI(formData);
+                                if (result && result.success) {
+                                    showToast('Funcionário excluído com sucesso.');
+                                    await refreshDataAndRender();
+                                } else {
+                                    showToast('Falha ao excluir funcionário.', 'error');
                                 }
                             }
-                            break;
-                        case 'terminate':
-                            const dataDemissao = prompt("Insira a data de demissão (AAAA-MM-DD):", getLocalDateAsString());
-                            if (dataDemissao && /^\d{4}-\d{2}-\d{2}$/.test(dataDemissao)) {
-                                const motivoDemissao = prompt("Insira o motivo do desligamento:", "");
-                                const elegivelOptions = ['Sim', 'Não', 'Avaliar'];
-                                const elegivelInput = prompt(`O funcionário é elegível para recontratação?\nOpções: ${elegivelOptions.join(', ')}`, "Avaliar");
-                                const elegivelRecontratacao = elegivelOptions.includes(elegivelInput) ? elegivelInput : 'Avaliar';
-
-                                const formData = new FormData();
-                                formData.append('action', 'terminate_funcionario');
-                                formData.append('id', funcId);
-                                formData.append('data_demissao', dataDemissao);
-                                formData.append('motivo_demissao', motivoDemissao);
-                                formData.append('elegivel_recontratacao', elegivelRecontratacao);
-
-                                if (await postAPI(formData)) {
-                                    showToast('Contrato encerrado.');
-                                    refreshDataAndRender();
-                                }
-                            } else if (dataDemissao !== null) {
-                                alert('Formato de data inválido. Use AAAA-MM-DD.');
-                            }
-                            break;
-                    }
+                        );
+                        break;
                 }
             });
         }
@@ -1153,112 +1248,90 @@ document.addEventListener('DOMContentLoaded', function() {
         if(employeeModal) {
             employeeModal.addEventListener('click', async (e) => {
                 const target = e.target;
-                const item = target.closest('.explorer-item');
 
                 const tabBtn = target.closest('.tab-btn');
-                const folder = target.closest('#main-folder-view .folder');
-                const breadcrumbLink = target.closest('#breadcrumb a');
-                const backBtn = target.closest('#back-to-folders-btn');
-                const createFolderBtn = target.closest('#create-folder-btn');
-                const editFolderBtn = target.closest('.item-actions .edit');
-                const deleteFolderBtn = target.closest('.item-actions .delete');
-
                 if (tabBtn) {
-                    const tabId = tabBtn.dataset.tab;
-                    employeeModal.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                    employeeModal.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    const tabName = tabBtn.dataset.tab;
+                    employeeModal.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
                     tabBtn.classList.add('active');
-                    document.getElementById(tabId).classList.add('active');
-                }
-                
-                if (folder && currentEmployeeId) {
-                    const folderName = folder.dataset.folderName;
-                    const result = await fetchAPI(`action=get_folder_id_by_name&funcionario_id=${currentEmployeeId}&folder_name=${folderName}`);
-                    
-                    if (result.success) {
-                        const breadcrumb = [{ id: null, nome: 'Raiz' }, { id: result.folder_id, nome: folderName }];
-                        renderFileExplorer(currentEmployeeId, result.folder_id, breadcrumb);
-                    } else {
-                        showToast('Erro ao encontrar a pasta.', 'error');
-                    }
+                    document.getElementById(tabName).classList.add('active');
+                    return;
                 }
 
+                const folder = target.closest('.folder-grid .folder');
+                if (folder) {
+                    const folderName = folder.dataset.folderName;
+                    const result = await fetchAPI(`action=get_folder_id_by_name&funcionario_id=${currentEmployeeId}&folder_name=${encodeURIComponent(folderName)}`);
+                    if (result && result.folder_id) {
+                        const breadcrumb = [{ id: result.folder_id, nome: folderName }];
+                        renderFileExplorer(currentEmployeeId, result.folder_id, breadcrumb);
+                    }
+                    return;
+                }
+
+                if (target.closest('#back-to-folders-btn')) {
+                    document.getElementById('file-explorer-view').classList.add('hidden');
+                    document.getElementById('main-folder-view').classList.remove('hidden');
+                    return;
+                }
+
+                const breadcrumbLink = target.closest('#breadcrumb a');
                 if (breadcrumbLink) {
                     e.preventDefault();
-                    const folderId = breadcrumbLink.dataset.folderId === 'null' ? null : breadcrumbLink.dataset.folderId;
+                    const folderId = breadcrumbLink.dataset.folderId;
                     const breadcrumbIndex = parseInt(breadcrumbLink.dataset.breadcrumbIndex);
                     const newBreadcrumb = breadcrumbHistory.slice(0, breadcrumbIndex + 1);
                     renderFileExplorer(currentEmployeeId, folderId, newBreadcrumb);
+                    return;
                 }
 
-                if (backBtn) {
-                    if (breadcrumbHistory.length > 2) {
-                        breadcrumbHistory.pop();
-                        const previousFolder = breadcrumbHistory[breadcrumbHistory.length - 1];
-                        renderFileExplorer(currentEmployeeId, previousFolder.id, breadcrumbHistory);
-                    } else {
-                        document.getElementById('file-explorer-view').classList.add('hidden');
-                        document.getElementById('main-folder-view').classList.remove('hidden');
-                    }
-                }
-
-                if (createFolderBtn) {
-                    const nomePasta = prompt("Digite o nome da nova subpasta:");
-                    if (nomePasta && currentEmployeeId && currentFolderId) {
-                        const formData = new FormData();
-                        formData.append('action', 'criar_pasta');
-                        formData.append('funcionario_id', currentEmployeeId);
-                        formData.append('parent_id', currentFolderId);
-                        formData.append('nome_pasta', nomePasta);
-                        if (await postAPI(formData)) {
-                            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
-                        }
-                    }
-                }
-
-                if (editFolderBtn) {
-                    const folderId = item.dataset.folderId;
-                    const spanNome = item.querySelector('span');
-                    const nomeAtual = spanNome.textContent;
-                    
-                    const novoNome = prompt("Digite o novo nome da pasta:", nomeAtual);
-                    if (novoNome && novoNome !== nomeAtual) {
-                        const formData = new FormData();
-                        formData.append('action', 'renomear_pasta');
-                        formData.append('pasta_id', folderId);
-                        formData.append('novo_nome', novoNome);
-                        if (await postAPI(formData)) {
-                            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
-                            showToast('Pasta renomeada com sucesso!');
-                        }
-                    }
-                }
-                
-                if (deleteFolderBtn) {
-                    const folderId = item.dataset.folderId;
-                    const documentId = item.dataset.documentId;
-                    
-                    if (folderId) {
-                        const nomePasta = item.querySelector('span').textContent;
-                        if (confirm(`Tem certeza que deseja excluir a subpasta "${nomePasta}"?\n\nAVISO: A pasta deve estar vazia.`)) {
+                const itemAction = target.closest('.explorer-item .item-actions .action-btn.delete');
+                if (itemAction) {
+                    const item = itemAction.closest('.explorer-item');
+                    if (item.classList.contains('folder')) {
+                        const folderId = item.dataset.folderId;
+                        const folderName = item.querySelector('span').textContent;
+                        showConfirmationModal('Excluir Pasta', `Tem certeza que deseja excluir a pasta "<strong>${folderName}</strong>"? A pasta só pode ser excluída se estiver vazia.`, 'EXCLUIR', async () => {
                             const formData = new FormData();
                             formData.append('action', 'excluir_pasta');
                             formData.append('pasta_id', folderId);
                             const result = await postAPI(formData);
                             if (result && result.success) {
+                                showToast('Pasta excluída com sucesso.');
                                 renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
-                                showToast('Pasta excluída com sucesso!');
+                            } else {
+                                showToast(result.message || 'Não foi possível excluir a pasta.', 'error');
                             }
-                        }
-                    } else if (documentId) {
-                        if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+                        });
+                    } else if (item.classList.contains('file')) {
+                        const documentId = item.dataset.documentId;
+                        const fileName = item.querySelector('span').textContent;
+                        showConfirmationModal('Excluir Arquivo', `Tem certeza que deseja excluir o arquivo "<strong>${fileName}</strong>"?`, 'EXCLUIR', async () => {
                             const formData = new FormData();
                             formData.append('action', 'excluir_arquivo');
                             formData.append('documento_id', documentId);
-                            if (await postAPI(formData)) {
+                            const result = await postAPI(formData);
+                            if (result && result.success) {
+                                showToast('Arquivo excluído com sucesso.');
                                 renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
-                                showToast('Arquivo excluído com sucesso!');
                             }
+                        });
+                    }
+                    return;
+                }
+
+                if (target.closest('#create-folder-btn')) {
+                    const folderName = prompt('Digite o nome da nova subpasta:');
+                    if (folderName && folderName.trim() !== '') {
+                        const formData = new FormData();
+                        formData.append('action', 'criar_pasta');
+                        formData.append('funcionario_id', currentEmployeeId);
+                        formData.append('parent_id', currentFolderId);
+                        formData.append('nome_pasta', folderName.trim());
+                        const result = await postAPI(formData);
+                        if (result && result.success) {
+                            showToast('Pasta criada com sucesso.');
+                            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
                         }
                     }
                 }
@@ -1283,26 +1356,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if(menuToggle) {
             menuToggle.addEventListener('click', () => mainNav.classList.toggle('active'));
         }
-
-        document.querySelectorAll('.children-filter').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const parent = e.target.closest('.filter-group-dynamic');
-                const subFilter = parent.querySelector('.sub-filter');
-                if (e.target.value === 'sim') {
-                    subFilter.classList.remove('hidden');
-                } else {
-                    subFilter.classList.add('hidden');
-                    // Limpa os campos de idade se o usuário mudar a opção
-                    subFilter.querySelector('.children-age-min-filter').value = '';
-                    subFilter.querySelector('.children-age-max-filter').value = '';
-                }
+        
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await fetchAPI('action=logout');
+                window.location.reload();
             });
-        });
+        }
 
         const temFilhosSelect = document.getElementById('tem_filhos');
         const childrenContainer = document.getElementById('children-dynamic-container');
         const addChildBtn = document.getElementById('add-child-btn');
-
         if (temFilhosSelect) {
             temFilhosSelect.addEventListener('change', () => {
                 if (temFilhosSelect.value === 'sim') {
@@ -1316,14 +1381,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-        
         if (addChildBtn) {
             addChildBtn.addEventListener('click', createChildEntry);
         }
 
         const estadoCivilSelect = document.getElementById('estado_civil');
         const spouseContainer = document.getElementById('spouse-dynamic-container');
-
         if (estadoCivilSelect) {
             estadoCivilSelect.addEventListener('change', () => {
                 if (estadoCivilSelect.value === 'Casado(a)') {
@@ -1335,24 +1398,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+
+        const terminateForm = document.getElementById('form-encerrar-contrato');
+        if (terminateForm) {
+            terminateForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = terminateForm.dataset.employeeId;
+                const formData = new FormData(terminateForm);
+                formData.append('action', 'terminate_funcionario');
+                formData.append('id', id);
+
+                const result = await postAPI(formData);
+                if (result && result.success) {
+                    showToast('Contrato encerrado com sucesso.');
+                    document.getElementById('modal-encerrar-contrato').classList.add('hidden');
+                    await refreshDataAndRender();
+                } else {
+                    showToast('Falha ao encerrar contrato.', 'error');
+                }
+            });
+        }
+        const terminateModal = document.getElementById('modal-encerrar-contrato');
+        if(terminateModal) {
+            terminateModal.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    terminateModal.classList.add('hidden');
+                });
+            });
+        }
     }
     
-    // Inicialização do Login e Tema
     if(loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            if (user === 'admin' && pass === 'admin') {
+            const formData = new FormData(loginForm);
+            formData.append('action', 'login');
+            
+            const result = await postAPI(formData);
+
+            if (result && result.success) {
                 loginContainer.style.opacity = 0;
                 setTimeout(() => {
-                    loginContainer.classList.add('hidden');
-                    appWrapper.classList.remove('hidden');
-                    initializeApp();
+                    checkLoginStatus();
                 }, 400);
             } else {
                 const loginError = document.getElementById('login-error');
-                 loginError.textContent = 'Usuário ou senha inválidos.';
+                 loginError.textContent = result ? result.message : 'E-mail ou senha inválidos.';
                  loginForm.parentElement.classList.add('shake');
                  setTimeout(() => loginForm.parentElement.classList.remove('shake'), 500);
             }
@@ -1372,9 +1463,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const forgotPasswordLink = document.getElementById('forgot-password-link');
     if(forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', function(e){
+        forgotPasswordLink.addEventListener('click', async function(e){
             e.preventDefault();
-            alert('Funcionalidade "Esqueci minha senha" em desenvolvimento.');
+            const email = document.getElementById('email').value;
+            if (!email) {
+                showToast('Por favor, digite seu e-mail para recuperar a senha.', 'error');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('action', 'esqueci_senha');
+            formData.append('email', email);
+            const result = await postAPI(formData);
+            if(result) showToast(result.message);
         });
     }
 
@@ -1387,4 +1487,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    checkLoginStatus();
 });
