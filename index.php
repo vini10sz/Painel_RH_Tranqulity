@@ -5,30 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel RH - Grupo Tranquility</title>
     <link rel="icon" href="assets/imagens/imagens.png" sizes="32x32" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     
-    <div id="login-container">
+    <div id="login-container" class="hidden">
         <div class="login-box">
-            <img src="assets/imagens/imagens.png" alt="Tranquility Parking Lot Logo" class="login-logo">
+            <img src="assets/imagens/imagens.png" alt="Logo" class="login-logo">
             <h2>Painel de Gestão RH</h2>
             <p class="login-subtitle">Acesse com suas credenciais.</p>
             <form id="login-form">
                 <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="username" placeholder="Usuário (admin)" required>
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" name="email" placeholder="E-mail" required>
                 </div>
                 <div class="input-group">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" placeholder="Senha (admin)" required>
-                    <button type="button" id="toggle-password" class="toggle-password-btn">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <input type="password" id="password" name="senha" placeholder="Senha" required>
+                    <button type="button" id="toggle-password" class="toggle-password-btn"><i class="fas fa-eye"></i></button>
                 </div>
                 <button type="submit" class="login-button">Entrar <i class="fas fa-arrow-right"></i></button>
                 <p id="login-error" class="login-error-message"></p>
@@ -42,7 +37,7 @@
     <div id="app-wrapper" class="hidden">
         <header>
             <div class="container">
-                <img src="assets/imagens/imagens.png" alt="Tranquility Parking Lot Logo" class="logo">
+                <img src="assets/imagens/imagens.png" alt="Logo" class="logo">
                 <nav id="main-nav">
                     <ul>
                         <li><a href="#funcionarios" id="nav-funcionarios" class="active">Ativos</a></li>
@@ -52,9 +47,8 @@
                     </ul>
                 </nav>
                 <div class="header-actions">
-                    <button id="theme-toggle" title="Alternar tema">
-                        <i class="fas fa-moon"></i>
-                    </button>
+                    <button id="theme-toggle" title="Alternar tema"><i class="fas fa-moon"></i></button>
+                    <button id="logout-btn" class="logout-button" title="Sair do Sistema">Sair <i class="fas fa-sign-out-alt"></i></button>
                     <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
                 </div>
             </div>
@@ -285,6 +279,64 @@
                 </div>
             </section>
         </main>
+
+                <div id="modal-confirmacao" class="modal-overlay hidden">
+            <div class="modal-content confirmation-dialog">
+                <button type="button" class="modal-close-btn">&times;</button>
+                <div class="confirmation-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="titulo-confirmacao">Título da Confirmação</h3>
+                <p id="mensagem-confirmacao">Mensagem de confirmação vai aqui.</p>
+                <div class="form-group">
+                    <label for="input-confirmacao">Para confirmar, digite <strong id="palavra-chave-confirmacao"></strong></label>
+                    <input type="text" id="input-confirmacao" autocomplete="off">
+                </div>
+                <div class="confirmation-actions">
+                    <button type="button" class="modal-btn cancel-btn">Cancelar</button>
+                    <button type="button" class="modal-btn confirm-btn" disabled>Confirmar Ação</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-encerrar-contrato" class="modal-overlay hidden">
+            <div class="modal-content">
+                <form id="form-encerrar-contrato">
+                    <div class="form-header">
+                        <h2 id="titulo-modal-encerrar-contrato"><i class="fas fa-calendar-xmark"></i> Encerrar Contrato</h2>
+                        <button type="button" class="modal-close-btn">&times;</button>
+                    </div>
+                    <div class="form-body">
+                        <p>Você está encerrando o contrato de <strong id="nome-funcionario-encerrar"></strong>.</p>
+                        <div class="form-group">
+                            <label for="data_demissao">Data de Demissão</label>
+                            <input type="date" id="data_demissao" name="data_demissao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="motivo_demissao">Motivo do Desligamento</label>
+                            <textarea id="motivo_demissao" name="motivo_demissao" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="elegivel_recontratacao">Elegível para Recontratação?</label>
+                            <select id="elegivel_recontratacao" name="elegivel_recontratacao">
+                                <option value="Avaliar">Avaliar</option>
+                                <option value="Sim">Sim</option>
+                                <option value="Não">Não</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group confirmation-input-group">
+                            <label for="input-encerrar-confirmacao">Para confirmar, digite <strong>CONFIRMAR</strong></label>
+                            <input type="text" id="input-encerrar-confirmacao" autocomplete="off">    
+                    </div>
+                    <div class="form-footer">
+                        <button type="button" class="modal-btn cancel-btn">Cancelar</button>
+                        <button type="submit" class="modal-btn confirm-btn">Confirmar Encerramento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <footer> <div class="container"><p>&copy; 2025 Painel de Gestão Tranquility Parking Lot</p></div> </footer>
     </div>
     <div id="toast"></div>
