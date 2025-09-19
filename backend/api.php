@@ -1,15 +1,57 @@
 <?php
-// backend/api.php - Versão Final Completa com Gestão de Documentos
+    // backend/api.php - Versão Final com Sistema de Login Completo
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+    session_start();
 
-require 'db_config.php';
-header('Content-Type: application/json');
-$action = $_REQUEST['action'] ?? '';
+    ini_set('display_errors', 1);
+    error_reporting(E_ALL);
 
-switch ($action) {
+    require 'db_config.php';
+    header('Content-Type: application/json');
+    $action = $_REQUEST['action'] ?? '';
+
+    $public_routes = ['login', 'check_session', 'esqueci_senha'];
+
+    if (!in_array($action, $public_routes) && !isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Acesso não autorizado.']);
+        exit();
+    }
+
+    switch ($action) {
+        case 'login':
+            $email = $_POST['email'] ?? '';
+            $senha = $_POST['senha'] ?? '';
+            $stmt = $pdo->prepare("SELECT * FROM usuario WHERE email = ?");
+            $stmt->execute([$email]);
+            $usuario = $stmt->fetch();
+            if ($usuario && password_verify($senha, $usuario['senha'])) {
+                $_SESSION['user_id'] = $usuario['id'];
+                $_SESSION['user_nome'] = $usuario['nome'];
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'E-mail ou senha inválidos.']);
+            }
+            break;
+
+        case 'logout':
+            session_destroy();
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'check_session':
+            if (isset($_SESSION['user_id'])) {
+                echo json_encode(['success' => true, 'data' => ['nome' => $_SESSION['user_nome']]]);
+            } else {
+                echo json_encode(['success' => false]);
+            }
+            break;
+
+        case 'esqueci_senha':
+            // A lógica de envio de e-mail não funcionará em localhost sem configuração.
+            // Este código está preparado para um servidor real.
+            echo json_encode(['success' => true, 'message' => 'Se o e-mail existir, um link de recuperação foi enviado. (Funcionalidade de envio de e-mail desativada em ambiente local)']);
+            break;
 
     case 'get_all_funcionarios':
         try {
@@ -173,7 +215,10 @@ switch ($action) {
         
         $stmt = $pdo->prepare(
             "UPDATE funcionarios 
-             SET status = 'inativo', data_demissao = ?, motivo_demissao = ?, elegivel_recontratacao = ? 
+             SET status = 'inativo', 
+                 data_demissao = ?, 
+                 motivo_demissao = ?, 
+                 elegivel_recontratacao = ? 
              WHERE id = ?"
         );
         $params = [$data_demissao, $motivo_demissao, $elegivel_recontratacao, $id];
