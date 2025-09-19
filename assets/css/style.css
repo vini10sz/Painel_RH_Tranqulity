@@ -840,3 +840,200 @@ body.dark-mode .explorer-item:hover {
     max-width: 300px;
     max-height: 80px;
 }
+
+.modal-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.modal-btn.cancel-btn {
+    background-color: transparent;
+    border: 1px solid var(--cinza-borda);
+    color: var(--cinza-texto);
+}
+.modal-btn.cancel-btn:hover {
+    background-color: #f1f3f5;
+    border-color: #adb5bd;
+}
+.modal-btn.confirm-btn {
+    background-color: var(--vermelho-erro);
+    color: white;
+}
+.modal-btn.confirm-btn:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+.modal-btn.confirm-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+#modal-encerrar-contrato .modal-content {
+    max-width: 480px;
+}
+#modal-encerrar-contrato .form-header {
+    text-align: center;
+}
+#modal-encerrar-contrato .form-header h2 {
+     width: 100%;
+    padding-right: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+#modal-encerrar-contrato .form-footer {
+    justify-content: flex-end;
+    gap: 15px;
+}
+#modal-encerrar-contrato .confirmation-input-group {
+    margin-top: 25px;
+    text-align: center;
+    border-top: 1px solid var(--cinza-borda);
+    padding-top: 20px;
+}
+
+#modal-encerrar-contrato .confirmation-input-group input {
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 2px;
+    max-width: 90%; 
+    margin-left: auto;
+    margin-right: auto;
+    letter-spacing: 2px;
+    width: 100%;
+}
+
+.confirmation-dialog {
+    max-width: 420px;
+    text-align: center;
+    padding: 40px 30px 30px 30px;
+}
+.confirmation-icon {
+    font-size: 48px;
+    color: var(--amarelo-aviso);
+    margin-bottom: 20px;
+}
+.confirmation-dialog h3 {
+    margin: 0 0 10px 0;
+    color: var(--azul-escuro);
+    font-size: 22px;
+}
+.confirmation-dialog p {
+    margin-bottom: 25px;
+    color: var(--cinza-texto);
+    line-height: 1.6;
+}
+.confirmation-dialog .form-group {
+    text-align: center;
+    margin-bottom: 25px;
+}
+.confirmation-dialog .form-group label {
+    font-size: 14px;
+    display: block;
+}
+.confirmation-dialog .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+.confirmation-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+body.dark-mode .confirmation-dialog,
+body.dark-mode #modal-encerrar-contrato .modal-content {
+    background-color: #2a2a52;
+}
+body.dark-mode .confirmation-dialog h3 {
+    color: #fff;
+}
+body.dark-mode .modal-btn.cancel-btn {
+    border-color: #4a4a6e;
+    color: #e0e0e0;
+}
+body.dark-mode .modal-btn.cancel-btn:hover {
+    background-color: #3a3a5c;
+    border-color: #6a6a8e;
+}
+body.dark-mode #modal-encerrar-contrato .confirmation-input-group {
+    border-top-color: #4a4a6e;
+}
+
+#modal-confirmacao, #modal-encerrar-contrato {
+    z-index: 2001;
+}
+
+.recontratacao-selo {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 2;
+}
+.recontratacao-selo.nao {
+    background-color: var(--vermelho-erro);
+}
+.recontratacao-selo.avaliar {
+    background-color: var(--amarelo-aviso);
+}
+.recontratacao-selo.sim {
+    background-color: var(--verde-sucesso);
+}
+
+/* === NOVA ESTILIZAÇÃO DO BOTÃO DE LOGOUT === */
+#welcome-message {
+    display: none;
+}
+#logout-btn.logout-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fbecec;
+    color: var(--vermelho-erro);
+    border: 1px solid #f5c6cb;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+#logout-btn.logout-button:hover {
+    background-color: var(--vermelho-erro);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+body.dark-mode #logout-btn.logout-button {
+    background-color: #2e1a1a;
+    border-color: #582a2a;
+    color: #f88;
+}
+body.dark-mode #logout-btn.logout-button:hover {
+    background-color: var(--vermelho-erro);
+    color: #fff;
+}
