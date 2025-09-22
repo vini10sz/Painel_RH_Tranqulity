@@ -1,3 +1,11 @@
+<?php
+    session_start();
+    // Se o usuário não estiver logado, redireciona para a página de login
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: login.php');
+        exit();
+    }
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -10,31 +18,7 @@
 </head>
 <body>
     
-    <div id="login-container" class="hidden">
-        <div class="login-box">
-            <img src="assets/imagens/imagens.png" alt="Logo" class="login-logo">
-            <h2>Painel de Gestão RH</h2>
-            <p class="login-subtitle">Acesse com suas credenciais.</p>
-            <form id="login-form">
-                <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" name="email" placeholder="E-mail" required>
-                </div>
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="senha" placeholder="Senha" required>
-                    <button type="button" id="toggle-password" class="toggle-password-btn"><i class="fas fa-eye"></i></button>
-                </div>
-                <button type="submit" class="login-button">Entrar <i class="fas fa-arrow-right"></i></button>
-                <p id="login-error" class="login-error-message"></p>
-            </form>
-            <div class="login-footer-links">
-                <a href="#" id="forgot-password-link">Esqueci minha senha</a>
-            </div>
-        </div>
-    </div>
-
-    <div id="app-wrapper" class="hidden">
+    <div id="app-wrapper">
         <header>
             <div class="container">
                 <img src="assets/imagens/imagens.png" alt="Logo" class="logo">
@@ -44,15 +28,83 @@
                         <li><a href="#inativos" id="nav-inativos">Inativos</a></li>
                         <li><a href="#status" id="nav-status">Dashboard</a></li>
                         <li><a href="https://tparking.com.br/" target="_blank" class="home-link">Site Principal</a></li>
+                        <button id="theme-toggle" title="Alternar tema">
+                      <i class="fas fa-moon"></i>
+                  </button>
                     </ul>
                 </nav>
                 <div class="header-actions">
-                    <button id="theme-toggle" title="Alternar tema"><i class="fas fa-moon"></i></button>
-                    <button id="logout-btn" class="logout-button" title="Sair do Sistema">Sair <i class="fas fa-sign-out-alt"></i></button>
-                    <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+            <div class="notification-container">
+                <button id="notification-toggle" title="Notificações">
+                    <i class="fas fa-bell"></i>
+                    <span id="notification-count" class="hidden"></span>
+                </button>
+                <div id="notification-panel" class="notification-panel hidden">
+                    <div class="notification-panel-header">
+                        <h3>Notificações</h3>
+                        <div class="notification-tabs">
+                            <button class="tab-btn active" data-tab="pendentes">Pendentes</button>
+                            <button class="tab-btn" data-tab="lidas">Lidas</button>
+                            <button class="tab-btn" data-tab="lixeira">Lixeira</button>
+                        </div>
+                    </div>
+                    <div class="notification-panel-body">
+                        <div id="pendentes-list" class="notification-list-container active">
+                            <div class="notification-list-actions">
+                                <div class="select-all-container">
+                                    <input type="checkbox" id="select-all-pendentes" class="notification-select-all">
+                                    <label for="select-all-pendentes">Selecionar Todos</label>
+                                </div>
+                                <button id="mark-as-read-btn" class="action-btn-lote" disabled>
+                                    <i class="fas fa-check-double"></i> Marcar como Lidas
+                                </button>
+                            </div>
+                            <div class="notification-items-wrapper">
+                                </div>
+                        </div>
+                        <div id="lidas-list" class="notification-list-container">
+                             <div class="notification-list-actions">
+                                <div class="select-all-container">
+                                    <input type="checkbox" id="select-all-lidas" class="notification-select-all">
+                                    <label for="select-all-lidas">Selecionar Todas</label>
+                                </div>
+                                <button id="move-to-trash-btn" class="action-btn-lote" disabled>
+                                    <i class="fas fa-trash-alt"></i> Mover para Lixeira
+                                </button>
+                            </div>
+                            <div class="notification-items-wrapper">
+                                </div>
+                        </div>
+                        <div id="lixeira-list" class="notification-list-container">
+                             <div class="trash-warning">
+                                <i class="fas fa-history"></i>
+                                <span>Itens na lixeira são excluídos permanentemente após 30 dias.</span>
+                            </div>
+                             <div class="notification-list-actions">
+                                <div class="select-all-container">
+                                    <input type="checkbox" id="select-all-lixeira" class="notification-select-all">
+                                    <label for="select-all-lixeira">Selecionar Todas</label>
+                                </div>
+                                <div>
+                                    <button id="recover-from-trash-btn" class="action-btn-lote" disabled>
+                                        <i class="fas fa-undo"></i> Recuperar
+                                    </button>
+                                    <button id="delete-permanently-btn" class="action-btn-lote" disabled>
+                                        <i class="fas fa-times"></i> Excluir Perm.
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="notification-items-wrapper">
+                                </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </header>
+            <button id="logout-btn" class="logout-button" title="Sair do Sistema">Sair <i class="fas fa-sign-out-alt"></i></button>
+            <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
+        </div>
+    </div>
+</header>
         <main>
             <section id="funcionarios-section" class="content-section active">
                 <div class="container">
@@ -279,8 +331,7 @@
                 </div>
             </section>
         </main>
-
-                <div id="modal-confirmacao" class="modal-overlay hidden">
+        <div id="modal-confirmacao" class="modal-overlay hidden">
             <div class="modal-content confirmation-dialog">
                 <button type="button" class="modal-close-btn">&times;</button>
                 <div class="confirmation-icon">
@@ -511,6 +562,34 @@
                     <button type="submit" class="form-submit-btn"><i class="fas fa-save"></i> Salvar Colaborador</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <div id="onload-notification-popup" class="onload-notification hidden">
+        <div class="onload-notification-header">
+            <i class="fas fa-info-circle"></i>
+            <h4>Alerta de Notificações</h4>
+            <button class="close-btn">&times;</button>
+        </div>
+        <div class="onload-notification-body">
+            <p>Você tem novos alertas e vencimentos importantes. Verifique o painel de notificações.</p>
+        </div>
+    </div>
+
+    <div id="modal-input" class="modal-overlay hidden">
+        <div class="modal-content input-dialog">
+            <button type="button" class="modal-close-btn">&times;</button>
+            <h3 id="input-modal-title">Título do Input</h3>
+            <p id="input-modal-message">Mensagem de instrução.</p>
+            <div class="form-group">
+                <input type="text" id="input-modal-field" placeholder="Digite aqui...">
+            </div>
+            <div class="confirmation-actions">
+                <button type="button" class="modal-btn cancel-btn">Cancelar</button>
+                <button type="button" class="modal-btn confirm-btn">Confirmar</button>
+            </div>
         </div>
     </div>
     
