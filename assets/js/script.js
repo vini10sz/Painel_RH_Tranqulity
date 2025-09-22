@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final Corrigida e Completa
+// assets/js/script.js - Versão Final com todas as correções
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.getElementById('menu-toggle');
     const sections = document.querySelectorAll('.content-section');
     const navLinks = document.querySelectorAll('#main-nav a');
+    const notificationToggle = document.getElementById('notification-toggle');
+    const notificationPanel = document.getElementById('notification-panel');
+    const notificationCount = document.getElementById('notification-count');
+    const onloadNotificationPopup = document.getElementById('onload-notification-popup');
 
     let masterEmployeeList = { ativos: [], inativos: [] };
     let statusChartInstance = null;
@@ -37,7 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
         "Hapvida", "Espaço HAOC", "São Carlos - Santa Casa", "São Carlos - CID", "São Carlos - Onovolab"
     ];
 
-    Chart.register(ChartDataLabels);
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+    }
 
     // =================================================================================
     // 2. LÓGICA DO DARK MODE
@@ -58,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // =================================================================================
-    // 3. FUNÇÕES HELPERS (API, Toast, etc)
+    // 3. FUNÇÕES HELPERS (API, Toast, Modais, etc)
     // =================================================================================
 
     function getLocalDateAsString(date = new Date()) {
@@ -108,8 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`${API_URL}?${params}`, { cache: "no-store" });
             if (response.status === 401) {
-                loginContainer.classList.remove('hidden');
-                appWrapper.classList.add('hidden');
+                if (window.location.pathname.includes('index.php')) {
+                    window.location.href = 'login.php';
+                }
                 return null;
             }
             if (!response.ok) throw new Error(`Erro de rede: ${response.status}`);
@@ -127,18 +134,21 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(API_URL, { method: 'POST', body: formData });
             if (response.status === 401) {
-                loginContainer.classList.remove('hidden');
-                appWrapper.classList.add('hidden');
+                if (window.location.pathname.includes('index.php')) {
+                    window.location.href = 'login.php';
+                }
                 return null;
             }
             if (!response.ok) throw new Error(`Erro de rede: ${response.status}`);
             const result = await response.json();
-            if (!result.success) throw new Error(result.message || 'Erro ao enviar dados.');
+             if (!result.success && formData.get('action') !== 'login' && formData.get('action') !== 'esqueci_senha') {
+                 throw new Error(result.message || 'Erro ao enviar dados.');
+            }
             return result;
         } catch (error) {
             console.error("Erro ao enviar dados para API:", error);
             showToast(error.message, 'error');
-            return null;
+            return { success: false, message: error.message };
         }
     }
 
@@ -149,17 +159,110 @@ document.addEventListener('DOMContentLoaded', function() {
         toast.className = `show ${type === 'error' ? 'error' : ''}`;
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
+    
+    function showConfirmationModal({ title, message, keyword, onConfirm }) {
+        const modal = document.getElementById('modal-confirmacao');
+        if (!modal) return;
+
+        modal.querySelector('#titulo-confirmacao').textContent = title;
+        modal.querySelector('#mensagem-confirmacao').innerHTML = message;
+        modal.querySelector('#palavra-chave-confirmacao').textContent = keyword;
+
+        const input = modal.querySelector('#input-confirmacao');
+        const confirmBtn = modal.querySelector('.confirm-btn');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+        const closeBtn = modal.querySelector('.modal-close-btn');
+
+        input.value = '';
+        confirmBtn.disabled = true;
+        
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        const inputHandler = () => {
+            newConfirmBtn.disabled = input.value !== keyword;
+        };
+        input.addEventListener('input', inputHandler);
+
+        const confirmHandler = () => {
+            onConfirm();
+            closeModal();
+        };
+        newConfirmBtn.addEventListener('click', confirmHandler, { once: true });
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            input.removeEventListener('input', inputHandler);
+        };
+
+        cancelBtn.onclick = closeModal;
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        };
+        
+        modal.classList.remove('hidden');
+    }
+
+    function showInputModal({ title, message, placeholder, onConfirm }) {
+        const modal = document.getElementById('modal-input');
+        if (!modal) return;
+
+        modal.querySelector('#input-modal-title').textContent = title;
+        modal.querySelector('#input-modal-message').textContent = message;
+        
+        const inputField = modal.querySelector('#input-modal-field');
+        inputField.placeholder = placeholder;
+        inputField.value = '';
+
+        const confirmBtn = modal.querySelector('.confirm-btn');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+        const closeBtn = modal.querySelector('.modal-close-btn');
+
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        const confirmHandler = () => {
+            const value = inputField.value.trim();
+            if (value) {
+                onConfirm(value);
+                closeModal();
+            } else {
+                showToast('O nome não pode estar vazio.', 'error');
+            }
+        };
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+        };
+
+        newConfirmBtn.addEventListener('click', confirmHandler, { once: true });
+        cancelBtn.addEventListener('click', closeModal, { once: true });
+        closeBtn.addEventListener('click', closeModal, { once: true });
+        
+        modal.classList.remove('hidden');
+        inputField.focus();
+    }
 
     function setupInputMasks() {
+        if (!window.IMask) return;
         const phoneMask = { mask: '(00) 00000-0000' };
         const cpfMask = { mask: '000.000.000-00' };
         const cepMask = { mask: '00000-000' };
     
-        IMask(document.getElementById('telefone_1'), phoneMask);
-        IMask(document.getElementById('telefone_2'), phoneMask);
-        IMask(document.getElementById('telefone_3'), phoneMask);
-        IMask(document.getElementById('cpf'), cpfMask);
-        IMask(document.getElementById('cep'), cepMask);
+        const tel1 = document.getElementById('telefone_1');
+        const tel2 = document.getElementById('telefone_2');
+        const tel3 = document.getElementById('telefone_3');
+        const cpf = document.getElementById('cpf');
+        const cep = document.getElementById('cep');
+
+        if(tel1) IMask(tel1, phoneMask);
+        if(tel2) IMask(tel2, phoneMask);
+        if(tel3) IMask(tel3, phoneMask);
+        if(cpf) IMask(cpf, cpfMask);
+        if(cep) IMask(cep, cepMask);
     }
 
     function clearAllFilters() {
@@ -183,10 +286,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result && result.data) {
             masterEmployeeList = result.data;
             filterAndRenderLists(); 
+            fetchAndRenderNotifications();
         }
     }
 
     function createChildEntry(child = {}) {
+        const childrenList = document.getElementById('children-list');
+        if(!childrenList) return;
         const entryDiv = document.createElement('div');
         entryDiv.className = 'child-entry';
         entryDiv.innerHTML = `
@@ -194,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="date" class="child-birthdate" value="${child.data_nascimento || ''}">
             <button type="button" class="remove-child-btn"><i class="fas fa-trash"></i></button>
         `;
-        document.getElementById('children-list').appendChild(entryDiv);
+        childrenList.appendChild(entryDiv);
         entryDiv.querySelector('.remove-child-btn').addEventListener('click', () => {
             entryDiv.remove();
         });
@@ -230,57 +336,9 @@ document.addEventListener('DOMContentLoaded', function() {
             select.value = currentValue;
         });
     }
-    
-    function showConfirmationModal(title, message, keyword, onConfirm) {
-        const modal = document.getElementById('modal-confirmacao');
-        if (!modal) return;
-
-        modal.querySelector('#titulo-confirmacao').textContent = title;
-        modal.querySelector('#mensagem-confirmacao').innerHTML = message;
-        modal.querySelector('#palavra-chave-confirmacao').textContent = keyword;
-
-        const input = modal.querySelector('#input-confirmacao');
-        const confirmBtn = modal.querySelector('.confirm-btn');
-        const cancelBtn = modal.querySelector('.cancel-btn');
-        const closeBtn = modal.querySelector('.modal-close-btn');
-
-        input.value = '';
-        confirmBtn.disabled = true;
-        
-        const inputHandler = () => {
-            confirmBtn.disabled = input.value !== keyword;
-        };
-        input.addEventListener('input', inputHandler);
-
-        const newConfirmBtn = confirmBtn.cloneNode(true);
-        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-        newConfirmBtn.disabled = true;
-
-        const confirmHandler = () => {
-            onConfirm();
-            modal.classList.add('hidden');
-            input.removeEventListener('input', inputHandler);
-        };
-        newConfirmBtn.addEventListener('click', confirmHandler, { once: true });
-
-        const closeModal = () => {
-            modal.classList.add('hidden');
-            input.removeEventListener('input', inputHandler);
-        };
-
-        cancelBtn.onclick = closeModal;
-        closeBtn.onclick = closeModal;
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
-        };
-        
-        modal.classList.remove('hidden');
-    }
 
     // =================================================================================
-    // 4. NAVEGAÇÃO, FILTROS E RENDERIZAÇÃO
+    // FUNÇÕES DO PAINEL (INDEX.PHP)
     // =================================================================================
     
     function handleRouteChange() {
@@ -302,13 +360,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     
         if (hash === '#status') {
-            fetchAPI(`action=get_all_funcionarios`).then(result => {
-                if (result && result.data) {
-                    masterEmployeeList = result.data;
-                    updateDashboardSummary();
-                    initializeDashboard();
-                }
-            });
+            if (!dashboardInitialized) {
+                fetchAPI(`action=get_all_funcionarios`).then(result => {
+                    if (result && result.data) {
+                        masterEmployeeList = result.data;
+                        updateDashboardSummary();
+                        initializeDashboard();
+                    }
+                });
+            } else {
+                 loadDashboardData();
+            }
         }
     }
     
@@ -317,7 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
         for (const [type, sectionId] of Object.entries(listMap)) {
             const section = document.querySelector(`#${sectionId}`);
-            if (!section) continue;
+            if (!section || !section.classList.contains('active')) continue;
+            
             const container = section.querySelector('.filtros-container');
             const grid = section.querySelector('.funcionarios-grid');
             const sourceList = masterEmployeeList[type] || [];
@@ -476,19 +539,151 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         return card;
     }
+
+    async function fetchAndRenderNotifications() {
+        const result = await fetchAPI('action=get_notifications');
+        if (!notificationCount) return;
+
+        let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+        let statusChanged = false;
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        for (const id in notificationStatus) {
+            const item = notificationStatus[id];
+            if (item.status === 'trashed' && new Date(item.trashed_at) < thirtyDaysAgo) {
+                item.status = 'deleted';
+                statusChanged = true;
+            }
+        }
+
+        if (result && result.data) {
+            const apiNotifications = [
+                ...result.data.vencimentos,
+                ...result.data.datas_importantes
+            ];
+            apiNotifications.forEach(item => {
+                const notificationId = `${item.tipo}-${item.id}-${item.data_evento}`;
+                if (!notificationStatus[notificationId]) {
+                    notificationStatus[notificationId] = { status: 'pending', item_data: item, trashed_at: null };
+                    statusChanged = true;
+                }
+            });
+        }
+
+        if (statusChanged) {
+            localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
+        }
+        
+        const pendentesWrapper = document.getElementById('pendentes-list')?.querySelector('.notification-items-wrapper');
+        const lidasWrapper = document.getElementById('lidas-list')?.querySelector('.notification-items-wrapper');
+        const lixeiraWrapper = document.getElementById('lixeira-list')?.querySelector('.notification-items-wrapper');
+
+        if(!pendentesWrapper || !lidasWrapper || !lixeiraWrapper) return;
+
+        pendentesWrapper.innerHTML = '';
+        lidasWrapper.innerHTML = '';
+        lixeiraWrapper.innerHTML = '';
+
+        const allStoredNotifications = Object.values(notificationStatus);
+        const notificationsToRender = allStoredNotifications.filter(item => item.status !== 'deleted');
+
+        let unreadCount = 0;
+
+        if (notificationsToRender.length === 0) {
+            pendentesWrapper.innerHTML = '<p class="no-notifications">Nenhuma notificação pendente.</p>';
+            lidasWrapper.innerHTML = '<p class="no-notifications">Nenhuma notificação lida.</p>';
+            lixeiraWrapper.innerHTML = '<p class="no-notifications">Lixeira vazia.</p>';
+        } else {
+            notificationsToRender.sort((a,b) => {
+                if (!a.item_data || !b.item_data) return 0;
+                return new Date(a.item_data.data_evento) - new Date(b.item_data.data_evento)
+            });
+
+            notificationsToRender.forEach(statusInfo => {
+                if (!statusInfo || !statusInfo.item_data) return;
+                
+                const item = statusInfo.item_data;
+                const notificationId = `${item.tipo}-${item.id}-${item.data_evento}`;
+                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+                let statusClass = '', metaText = '', icon = '';
+
+                if (item.tipo === 'Aniversário') {
+                    const dataNascimento = new Date(item.data_evento + 'T12:00:00');
+                    let aniverEsteAno = new Date(hoje.getFullYear(), dataNascimento.getMonth(), dataNascimento.getDate());
+                    let dataAlvo = (aniverEsteAno < hoje) ? new Date(hoje.getFullYear() + 1, dataNascimento.getMonth(), dataNascimento.getDate()) : aniverEsteAno;
+                    const aniverDiffDays = Math.ceil((dataAlvo - hoje) / (1000 * 60 * 60 * 24));
+                    statusClass = 'aniversario'; icon = 'fa-birthday-cake';
+                    metaText = aniverDiffDays === 0 ? `Aniversário Hoje!` : `Aniversário em ${aniverDiffDays} dias`;
+                } else {
+                    const dataEvento = new Date(item.data_evento + 'T12:00:00');
+                    const diffDays = Math.ceil((dataEvento - hoje) / (1000 * 60 * 60 * 24));
+                    if (diffDays < 0) { statusClass = 'vencido'; metaText = `Vencido há ${Math.abs(diffDays)} dias`; }
+                    else if (diffDays === 0) { statusClass = 'vencido'; metaText = `Vence Hoje!`; }
+                    else { statusClass = 'vencendo'; metaText = `Vence em ${diffDays} dias`; }
+                    icon = 'fa-exclamation-triangle';
+                }
+
+                const checkboxHTML = `<input type="checkbox" class="notification-item-checkbox" data-notification-id="${notificationId}">`;
+                const notificationHTML = `<div class="notification-item ${statusClass}" data-employee-id="${item.id}">${checkboxHTML}<div class="icon"><i class="fas ${icon}"></i></div><div class="notification-item-content"><p><strong>${item.tipo}</strong> de ${item.nome}</p><span class="meta">${metaText}</span></div></div>`;
+
+                switch (statusInfo.status) {
+                    case 'read':
+                        lidasWrapper.innerHTML += notificationHTML;
+                        break;
+                    case 'trashed':
+                        lixeiraWrapper.innerHTML += notificationHTML;
+                        break;
+                    case 'pending':
+                        pendentesWrapper.innerHTML += notificationHTML;
+                        unreadCount++;
+                        break;
+                }
+            });
+        }
+
+        if (unreadCount > 0) {
+            notificationCount.textContent = unreadCount;
+            notificationCount.classList.remove('hidden');
+        } else {
+            notificationCount.classList.add('hidden');
+        }
+        
+        showOnloadNotificationPopup(unreadCount);
+    }
+
+    function showOnloadNotificationPopup(unreadCount) {
+        if (!onloadNotificationPopup) return;
+        if (unreadCount > 0) {
+            onloadNotificationPopup.classList.remove('hidden');
+            onloadNotificationPopup.querySelector('.close-btn').addEventListener('click', () => {
+                onloadNotificationPopup.classList.add('hidden');
+            });
+            setTimeout(() => {
+                onloadNotificationPopup.classList.add('hidden');
+            }, 10000);
+        }
+    }
+
+    function removeNotificationsForEmployee(employeeId) {
+        let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+        const updatedStatus = Object.fromEntries(
+            Object.entries(notificationStatus).filter(([notificationId]) => {
+                const parts = notificationId.split('-');
+                return parts[1] !== String(employeeId);
+            })
+        );
+        localStorage.setItem('notificationStatus', JSON.stringify(updatedStatus));
+    }
     
     // =================================================================================
-    // 5. LÓGICA DE MODAIS E FORMULÁRIO WIZARD
+    // LÓGICA DE MODAIS E FORMULÁRIO WIZARD
     // =================================================================================
     
     let currentStep = 1;
-    const formWizard = formModal.querySelector('.form-wizard');
-    const progressBar = formModal.querySelector('.form-progress-bar');
-    const formNavNextBtn = formModal.querySelector('.form-nav-btn.next');
-    const formNavPrevBtn = formModal.querySelector('.form-nav-btn.prev');
-    const formSubmitBtn = formModal.querySelector('.form-submit-btn');
 
     function validateStep(stepNumber) {
+        const formWizard = formModal.querySelector('.form-wizard');
         const step = formWizard.querySelector(`.form-step[data-step="${stepNumber}"]`);
         const inputs = step.querySelectorAll('input[required], select[required]');
         let isValid = true;
@@ -508,6 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateProgressBar() {
+        const progressBar = formModal.querySelector('.form-progress-bar');
         if(!progressBar) return;
         const progressSteps = progressBar.querySelectorAll('.progress-step');
         const progressLine = progressBar.querySelector('.progress-line');
@@ -525,6 +721,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function navigateToStep(step) {
+        const formWizard = formModal.querySelector('.form-wizard');
+        const formNavNextBtn = formModal.querySelector('.form-nav-btn.next');
+        const formNavPrevBtn = formModal.querySelector('.form-nav-btn.prev');
+        const formSubmitBtn = formModal.querySelector('.form-submit-btn');
+
         const formSteps = formWizard.querySelectorAll('.form-step');
         currentStep = step;
         formSteps.forEach(s => s.classList.remove('active'));
@@ -544,6 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function openEmployeeModal(func) {
+        if(!employeeModal) return;
         currentEmployeeId = func.id;
         const tabPessoal = employeeModal.querySelector('#tab-pessoal');
         document.getElementById('modal-employee-name').textContent = func.nome;
@@ -655,6 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function openFormModal(id = null, status = 'ativo') {
+        if(!formModal || !employeeForm) return;
         employeeForm.reset();
         navigateToStep(1);
         document.getElementById('form-modal-title').textContent = id ? 'Editar Funcionário' : 'Adicionar Funcionário';
@@ -714,6 +917,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         formModal.classList.remove('hidden');
+    }
+
+    function openTerminateModal(func) {
+        const modal = document.getElementById('modal-encerrar-contrato');
+        if (!modal) return;
+
+        const form = modal.querySelector('#form-encerrar-contrato');
+        const confirmInput = modal.querySelector('#input-encerrar-confirmacao');
+        const submitBtn = modal.querySelector('button[type="submit"]');
+
+        form.reset();
+        form.dataset.employeeId = func.id;
+        modal.querySelector('#nome-funcionario-encerrar').textContent = func.nome;
+
+        submitBtn.disabled = true;
+        confirmInput.value = ''; 
+
+        const inputHandler = () => {
+            if (confirmInput.value === 'CONFIRMAR') {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        };
+
+        confirmInput.removeEventListener('input', inputHandler);
+        confirmInput.addEventListener('input', inputHandler);
+
+        modal.classList.remove('hidden');
     }
 
     async function renderFileExplorer(funcionarioId, pastaId, breadcrumb) {
@@ -790,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // =================================================================================
-    // 6. LÓGICA DO DASHBOARD
+    // LÓGICA DO DASHBOARD
     // =================================================================================
     function updateDashboardSummary() {
         if(document.getElementById('total-ativos')) {
@@ -881,7 +1113,9 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         const summaryTableBody = document.getElementById('pdf-summary-table-body');
         const summaryTableTotal = document.getElementById('pdf-summary-table-total');
-        if(!summaryTableBody || !summaryTableTotal) return;
+        const chartElement = document.getElementById('statusChart');
+        if(!summaryTableBody || !summaryTableTotal || !chartElement) return;
+
         summaryTableBody.innerHTML = '';
         
         const labels = Object.values(inputs).map(item => item.label);
@@ -893,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         summaryTableTotal.innerHTML = `<td><strong>Total</strong></td><td><strong>${total}</strong></td>`;
 
-        const ctx = document.getElementById('statusChart').getContext('2d');
+        const ctx = chartElement.getContext('2d');
         statusChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -941,8 +1175,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await postAPI(formData);
         if (result && result.success) {
             showToast('Dados do dia salvos com sucesso!');
-        } else {
-            showToast('Falha ao salvar os dados.', 'error');
         }
     }
 
@@ -951,25 +1183,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const captureArea = document.getElementById('capture-area');
         const logoContainer = captureArea.querySelector('#pdf-logo-container');
         
-        // Guarda o HTML original para restaurar depois
         const logoOriginalHtml = logoContainer.innerHTML;
         
         const empresaSelecionada = document.getElementById('company-filter-dashboard').value;
         const empresasDisponiveis = ["Tranquility", "GSM", "Protector", "GS1"];
 
-        // Limpa o container de logos
         logoContainer.innerHTML = '';
 
         if (empresaSelecionada && empresaSelecionada !== 'Todas') {
-            // Se UMA empresa foi selecionada
             const nomeLogo = empresaSelecionada.toLowerCase();
             const logoImg = document.createElement('img');
             logoImg.src = `assets/imagens/${nomeLogo}.png`;
             logoImg.alt = `Logo ${empresaSelecionada}`;
-            logoImg.className = 'pdf-logo single-logo'; // Classe para um logo único ser maior
+            logoImg.className = 'pdf-logo single-logo';
             logoContainer.appendChild(logoImg);
         } else {
-            // Se "Todas as Empresas" foi selecionado, mostra todos os logos
             empresasDisponiveis.forEach(empresa => {
                 const nomeLogo = empresa.toLowerCase();
                 const logoImg = document.createElement('img');
@@ -1003,10 +1231,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth - 20, 0, undefined, 'FAST');
                 pdf.save(`Relatorio_Diario_${(empresaSelecionada || 'Geral').replace(' ', '_')}_${document.getElementById('date-picker').value}.pdf`);
 
-                // Restaura o logo original no HTML
                 logoContainer.innerHTML = logoOriginalHtml;
             });
-        }, 300); // Atraso para garantir o carregamento das imagens
+        }, 300);
     }
 
     function changeDay(offset) {
@@ -1017,23 +1244,10 @@ document.addEventListener('DOMContentLoaded', function() {
         datePicker.dispatchEvent(new Event('change'));
     }
 
-
     // =================================================================================
-    // 7. EVENT LISTENERS GERAIS E INICIALIZAÇÃO
+    // INICIALIZAÇÃO E EVENT LISTENERS DO PAINEL
     // =================================================================================
     
-    async function checkLoginStatus() {
-        const result = await fetchAPI('action=check_session');
-        if (result && result.success) {
-            loginContainer.classList.add('hidden');
-            appWrapper.classList.remove('hidden');
-            initializeApp();
-        } else {
-            loginContainer.classList.remove('hidden');
-            appWrapper.classList.add('hidden');
-        }
-    }
-
     function initializeApp() {
         fetchAPI(`action=get_all_funcionarios`).then(result => {
             if (result && result.data) {
@@ -1041,10 +1255,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 filterAndRenderLists(); 
             }
         });
-        setupEventListeners();
+        fetchAndRenderNotifications();
+        setupAppEventListeners();
+        handleRouteChange();
     }
     
-    function setupEventListeners() {
+    function setupAppEventListeners() {
         setupInputMasks();
         
         populateSelectWithOptions('.company-filter, #empresa, #company-filter-dashboard', empresas, 'Todas as Empresas');
@@ -1072,20 +1288,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
 
-        document.querySelectorAll('.children-filter').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const parent = e.target.closest('.filter-group-dynamic');
-                const subFilter = parent.querySelector('.sub-filter');
-                if (e.target.value === 'sim') {
-                    subFilter.classList.remove('hidden');
-                } else {
-                    subFilter.classList.add('hidden');
-                    // Limpa os campos de idade se o usuário mudar a opção
-                    subFilter.querySelector('.children-age-min-filter').value = '';
-                    subFilter.querySelector('.children-age-max-filter').value = '';
-                }
+            document.querySelectorAll('.children-filter').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const parent = e.target.closest('.filter-group-dynamic');
+                    if(!parent) return;
+                    const subFilter = parent.querySelector('.sub-filter');
+                    if (e.target.value === 'sim') {
+                        subFilter.classList.remove('hidden');
+                    } else {
+                        subFilter.classList.add('hidden');
+                        subFilter.querySelector('.children-age-min-filter').value = '';
+                        subFilter.querySelector('.children-age-max-filter').value = '';
+                    }
+                });
             });
-        });
             
             const advancedBtn = container.querySelector('.advanced-filter-btn');
             if(advancedBtn) {
@@ -1119,14 +1335,18 @@ document.addEventListener('DOMContentLoaded', function() {
             cepInput.addEventListener('blur', (e) => fetchAddressByCep(e.target.value));
         }
 
-        if (formNavNextBtn) {
+        const formWizard = formModal ? formModal.querySelector('.form-wizard') : null;
+        const formNavNextBtn = formModal ? formModal.querySelector('.form-nav-btn.next') : null;
+        const formNavPrevBtn = formModal ? formModal.querySelector('.form-nav-btn.prev') : null;
+
+        if (formNavNextBtn && formWizard) {
             formNavNextBtn.addEventListener('click', () => {
                 if (!validateStep(currentStep)) return;
                 const formSteps = formWizard.querySelectorAll('.form-step');
                 if (currentStep < formSteps.length) navigateToStep(currentStep + 1);
             });
         }
-        if (formNavPrevBtn) {
+        if (formNavPrevBtn && formWizard) {
             formNavPrevBtn.addEventListener('click', () => {
                 if (currentStep > 1) navigateToStep(currentStep - 1);
             });
@@ -1135,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (employeeForm) {
             employeeForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-    
+
                 const childrenData = [];
                 document.querySelectorAll('.child-entry').forEach(entry => {
                     const name = entry.querySelector('.child-name').value;
@@ -1155,92 +1375,88 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     document.getElementById('dados_conjuge').value = '';
                 }
-    
-                for(let i = 1; i <= 3; i++) {
+
+                for (let i = 1; i <= 3; i++) {
                     if (!validateStep(i)) {
                         navigateToStep(i);
                         return;
                     }
                 }
-    
-                const id = document.getElementById('employee-id').value;
-                const action = id ? 'update_funcionario' : 'add_funcionario';
-                const formData = new FormData(employeeForm);
-                formData.append('action', action);
                 
-                if (await postAPI(formData)) {
-                    formModal.classList.add('hidden');
-                    showToast(`Funcionário ${id ? 'atualizado' : 'adicionado'} com sucesso.`);
-                    clearAllFilters();
-                    refreshDataAndRender();
+                const handleFormSubmission = async () => {
+                    const id = document.getElementById('employee-id').value;
+                    const action = id ? 'update_funcionario' : 'add_funcionario';
+                    const formData = new FormData(employeeForm);
+                    formData.append('action', action);
+                    
+                    const result = await postAPI(formData);
+                    if (result && result.success) {
+                        formModal.classList.add('hidden');
+                        showToast(`Funcionário ${id ? 'atualizado' : 'adicionado'} com sucesso.`);
+                        clearAllFilters();
+                        refreshDataAndRender();
+                    }
+                };
+
+                const id = document.getElementById('employee-id').value;
+
+                if (id) {
+                    showConfirmationModal({
+                        title: 'Confirmar Alterações',
+                        message: 'Você confirma as alterações nos dados deste funcionário?',
+                        keyword: 'SALVAR',
+                        onConfirm: handleFormSubmission
+                    });
+                } else {
+                    handleFormSubmission();
                 }
             });
         }
     
-        if(appWrapper) {
+       if(appWrapper) {
             appWrapper.addEventListener('click', async (e) => {
-                const target = e.target;
-                const addBtn = target.closest('.add-btn');
-                const cardAction = target.closest('[data-action]');
-                const card = target.closest('.funcionario-card');
-                const id = card ? card.dataset.id : null;
-
+                const addBtn = e.target.closest('.add-btn');
                 if (addBtn) {
-                    const status = addBtn.dataset.status || 'ativo';
-                    openFormModal(null, status);
+                    openFormModal(null, addBtn.dataset.status);
                     return;
                 }
+                const actionTarget = e.target.closest('[data-action]');
+                if(actionTarget) {
+                    const card = e.target.closest('.funcionario-card');
+                    if (!card) return;
+                    const funcId = card.dataset.id;
+                    const func = [...masterEmployeeList.ativos, ...masterEmployeeList.inativos].find(f => f.id == funcId);
+                    if (!func) return;
 
-                if (!cardAction || !id) return;
-
-                const action = cardAction.dataset.action;
-                const employeeData = (masterEmployeeList.ativos.find(f => f.id == id) || masterEmployeeList.inativos.find(f => f.id == id));
-
-                if (!employeeData) {
-                    showToast('Funcionário não encontrado.', 'error');
-                    return;
-                }
-
-                switch (action) {
-                    case 'open-details':
-                        openEmployeeModal(employeeData);
-                        break;
-                    case 'edit':
-                        openFormModal(id, employeeData.status);
-                        break;
-                    case 'terminate':
-                        const terminateModal = document.getElementById('modal-encerrar-contrato');
-                        document.getElementById('nome-funcionario-encerrar').textContent = employeeData.nome;
-                        const form = terminateModal.querySelector('form');
-                        form.reset();
-                        form.querySelector('.confirm-btn').disabled = true;
-                        form.dataset.employeeId = id;
-                        terminateModal.classList.remove('hidden');
-                        
-                        const confirmInput = document.getElementById('input-encerrar-confirmacao');
-                        confirmInput.addEventListener('input', () => {
-                            form.querySelector('.confirm-btn').disabled = confirmInput.value !== 'CONFIRMAR';
-                        });
-                        break;
-                    case 'delete':
-                        showConfirmationModal(
-                            'Confirmar Exclusão',
-                            `Você tem certeza que deseja excluir permanentemente o registro de <strong>${employeeData.nome}</strong>? Esta ação não pode ser desfeita.`,
-                            'EXCLUIR',
-                            async () => {
-                                const formData = new FormData();
-                                formData.append('action', 'delete_funcionario');
-                                formData.append('id', id);
-                                const result = await postAPI(formData);
-                                if (result && result.success) {
-                                    showToast('Funcionário excluído com sucesso.');
-                                    await refreshDataAndRender();
-                                } else {
-                                    showToast('Falha ao excluir funcionário.', 'error');
+                    switch (actionTarget.dataset.action) {
+                        case 'open-details':
+                            openEmployeeModal(func);
+                            break;
+                        case 'edit':
+                            await openFormModal(funcId, func.status);
+                            break;
+                        case 'delete':
+                            showConfirmationModal({
+                                title: 'Excluir Funcionário',
+                                message: `Você está prestes a excluir permanentemente o registro de "<strong>${func.nome}</strong>". Esta ação não pode ser desfeita.`,
+                                keyword: 'EXCLUIR',
+                                onConfirm: async () => {
+                                    const formData = new FormData();
+                                    formData.append('action', 'delete_funcionario');
+                                    formData.append('id', funcId);
+                                    const result = await postAPI(formData);
+                                    if (result && result.success) {
+                                        showToast('Funcionário excluído com sucesso.');
+                                        removeNotificationsForEmployee(funcId);
+                                        refreshDataAndRender();
+                                    }
                                 }
-                            }
-                        );
-                        break;
+                            });
+                            break;
+                        case 'terminate':
+                            openTerminateModal(func);
+                            break;
+                    }
                 }
             });
         }
@@ -1268,10 +1484,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     return;
                 }
-
+                
+                // *** CORREÇÃO DO BOTÃO VOLTAR ***
                 if (target.closest('#back-to-folders-btn')) {
-                    document.getElementById('file-explorer-view').classList.add('hidden');
-                    document.getElementById('main-folder-view').classList.remove('hidden');
+                    if (breadcrumbHistory.length > 1) {
+                        breadcrumbHistory.pop();
+                        const parentFolder = breadcrumbHistory[breadcrumbHistory.length - 1];
+                        renderFileExplorer(currentEmployeeId, parentFolder.id, breadcrumbHistory);
+                    } else {
+                        document.getElementById('file-explorer-view').classList.add('hidden');
+                        document.getElementById('main-folder-view').classList.remove('hidden');
+                    }
                     return;
                 }
 
@@ -1284,67 +1507,111 @@ document.addEventListener('DOMContentLoaded', function() {
                     renderFileExplorer(currentEmployeeId, folderId, newBreadcrumb);
                     return;
                 }
-
-                const itemAction = target.closest('.explorer-item .item-actions .action-btn.delete');
-                if (itemAction) {
-                    const item = itemAction.closest('.explorer-item');
-                    if (item.classList.contains('folder')) {
+                
+                if (target.closest('#create-folder-btn')) {
+                    showInputModal({
+                        title: 'Criar Nova Subpasta',
+                        message: 'Digite o nome para a nova pasta.',
+                        placeholder: 'Ex: Documentos 2025',
+                        onConfirm: async (folderName) => {
+                            const formData = new FormData();
+                            formData.append('action', 'criar_pasta');
+                            formData.append('funcionario_id', currentEmployeeId);
+                            formData.append('parent_id', currentFolderId);
+                            formData.append('nome_pasta', folderName);
+                            const result = await postAPI(formData);
+                            if (result && result.success) {
+                                showToast('Pasta criada com sucesso.');
+                                renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                            }
+                        }
+                    });
+                    return;
+                }
+                
+                // *** NOVA LÓGICA PARA EDITAR E EXCLUIR ***
+                const editBtn = target.closest('.action-btn.edit');
+                if(editBtn) {
+                    const item = editBtn.closest('.explorer-item');
+                    if(item.classList.contains('folder')) {
                         const folderId = item.dataset.folderId;
                         const folderName = item.querySelector('span').textContent;
-                        showConfirmationModal('Excluir Pasta', `Tem certeza que deseja excluir a pasta "<strong>${folderName}</strong>"? A pasta só pode ser excluída se estiver vazia.`, 'EXCLUIR', async () => {
-                            const formData = new FormData();
-                            formData.append('action', 'excluir_pasta');
-                            formData.append('pasta_id', folderId);
-                            const result = await postAPI(formData);
-                            if (result && result.success) {
-                                showToast('Pasta excluída com sucesso.');
-                                renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
-                            } else {
-                                showToast(result.message || 'Não foi possível excluir a pasta.', 'error');
-                            }
-                        });
-                    } else if (item.classList.contains('file')) {
-                        const documentId = item.dataset.documentId;
-                        const fileName = item.querySelector('span').textContent;
-                        showConfirmationModal('Excluir Arquivo', `Tem certeza que deseja excluir o arquivo "<strong>${fileName}</strong>"?`, 'EXCLUIR', async () => {
-                            const formData = new FormData();
-                            formData.append('action', 'excluir_arquivo');
-                            formData.append('documento_id', documentId);
-                            const result = await postAPI(formData);
-                            if (result && result.success) {
-                                showToast('Arquivo excluído com sucesso.');
-                                renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                        showInputModal({
+                            title: 'Renomear Pasta',
+                            message: `Digite o novo nome para a pasta "${folderName}".`,
+                            placeholder: 'Novo nome da pasta',
+                            onConfirm: async (newName) => {
+                                const formData = new FormData();
+                                formData.append('action', 'rename_folder');
+                                formData.append('pasta_id', folderId);
+                                formData.append('novo_nome', newName);
+                                const result = await postAPI(formData);
+                                if (result && result.success) {
+                                    showToast('Pasta renomeada com sucesso.');
+                                    const parentFolder = breadcrumbHistory[breadcrumbHistory.length - 1];
+                                    renderFileExplorer(currentEmployeeId, parentFolder.id, breadcrumbHistory);
+                                }
                             }
                         });
                     }
                     return;
                 }
 
-                if (target.closest('#create-folder-btn')) {
-                    const folderName = prompt('Digite o nome da nova subpasta:');
-                    if (folderName && folderName.trim() !== '') {
-                        const formData = new FormData();
-                        formData.append('action', 'criar_pasta');
-                        formData.append('funcionario_id', currentEmployeeId);
-                        formData.append('parent_id', currentFolderId);
-                        formData.append('nome_pasta', folderName.trim());
-                        const result = await postAPI(formData);
-                        if (result && result.success) {
-                            showToast('Pasta criada com sucesso.');
-                            renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
-                        }
+                const deleteBtn = target.closest('.action-btn.delete');
+                if (deleteBtn) {
+                    const item = deleteBtn.closest('.explorer-item');
+                    if (item.classList.contains('folder')) {
+                        const folderId = item.dataset.folderId;
+                        const folderName = item.querySelector('span').textContent;
+                        showConfirmationModal({
+                            title: 'Excluir Pasta', 
+                            message: `Tem certeza que deseja excluir a pasta "<strong>${folderName}</strong>"? A pasta só pode ser excluída se estiver vazia.`, 
+                            keyword: 'EXCLUIR',
+                            onConfirm: async () => {
+                                const formData = new FormData();
+                                formData.append('action', 'excluir_pasta');
+                                formData.append('pasta_id', folderId);
+                                const result = await postAPI(formData);
+                                if (result && result.success) {
+                                    showToast('Pasta excluída com sucesso.');
+                                    const parentFolder = breadcrumbHistory[breadcrumbHistory.length - 1];
+                                    renderFileExplorer(currentEmployeeId, parentFolder.id, breadcrumbHistory);
+                                }
+                            }
+                        });
+                    } else if (item.classList.contains('file')) {
+                        const documentId = item.dataset.documentId;
+                        const fileName = item.querySelector('span').textContent;
+                        showConfirmationModal({
+                            title: 'Excluir Arquivo', 
+                            message: `Tem certeza que deseja excluir o arquivo "<strong>${fileName}</strong>"?`, 
+                            keyword: 'CONFIRMAR',
+                            onConfirm: async () => {
+                                const formData = new FormData();
+                                formData.append('action', 'excluir_arquivo');
+                                formData.append('documento_id', documentId);
+                                const result = await postAPI(formData);
+                                if (result && result.success) {
+                                    showToast('Arquivo excluído com sucesso.');
+                                    renderFileExplorer(currentEmployeeId, currentFolderId, breadcrumbHistory);
+                                }
+                            }
+                        });
                     }
                 }
             });
         }
-    
-        document.getElementById('file-upload-input')?.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileUpload(e.target.files[0]);
-                e.target.value = '';
-            }
-        });
 
+        const fileUploadInput = document.getElementById('file-upload-input');
+        if(fileUploadInput) {
+            fileUploadInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
+        }
+        
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', e => {
                 if (e.target === modal || e.target.closest('.modal-close-btn')) {
@@ -1359,16 +1626,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', async () => {
-                await fetchAPI('action=logout');
-                window.location.reload();
+            logoutBtn.addEventListener('click', () => {
+                showConfirmationModal({
+                    title: 'Confirmar Saída',
+                    message: 'Tem certeza de que deseja sair do sistema? Para confirmar, digite <strong>SAIR</strong> abaixo.',
+                    keyword: 'SAIR',
+                    onConfirm: async () => {
+                        await fetchAPI('action=logout');
+                        window.location.href = 'login.php';
+                        }
+                });
             });
         }
 
         const temFilhosSelect = document.getElementById('tem_filhos');
         const childrenContainer = document.getElementById('children-dynamic-container');
         const addChildBtn = document.getElementById('add-child-btn');
-        if (temFilhosSelect) {
+        if (temFilhosSelect && childrenContainer) {
             temFilhosSelect.addEventListener('change', () => {
                 if (temFilhosSelect.value === 'sim') {
                     childrenContainer.classList.remove('hidden');
@@ -1387,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const estadoCivilSelect = document.getElementById('estado_civil');
         const spouseContainer = document.getElementById('spouse-dynamic-container');
-        if (estadoCivilSelect) {
+        if (estadoCivilSelect && spouseContainer) {
             estadoCivilSelect.addEventListener('change', () => {
                 if (estadoCivilSelect.value === 'Casado(a)') {
                     spouseContainer.classList.remove('hidden');
@@ -1412,23 +1686,157 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result && result.success) {
                     showToast('Contrato encerrado com sucesso.');
                     document.getElementById('modal-encerrar-contrato').classList.add('hidden');
+                    removeNotificationsForEmployee(id);
                     await refreshDataAndRender();
-                } else {
-                    showToast('Falha ao encerrar contrato.', 'error');
                 }
             });
         }
         const terminateModal = document.getElementById('modal-encerrar-contrato');
         if(terminateModal) {
-            terminateModal.querySelectorAll('.cancel-btn').forEach(btn => {
+            terminateModal.querySelectorAll('.cancel-btn, .modal-close-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     terminateModal.classList.add('hidden');
                 });
             });
         }
+
+        if (notificationPanel) {
+            const tabs = notificationPanel.querySelector('.notification-tabs');
+            const tabContents = notificationPanel.querySelectorAll('.notification-list-container');
+            const markAsReadBtn = document.getElementById('mark-as-read-btn');
+            const moveToTrashBtn = document.getElementById('move-to-trash-btn');
+            const recoverBtn = document.getElementById('recover-from-trash-btn');
+            const deletePermBtn = document.getElementById('delete-permanently-btn');
+            const selectAllPendentes = document.getElementById('select-all-pendentes');
+            const selectAllLidas = document.getElementById('select-all-lidas');
+            const selectAllLixeira = document.getElementById('select-all-lixeira');
+            const pendentesContainer = document.getElementById('pendentes-list');
+            const lidasContainer = document.getElementById('lidas-list');
+            const lixeiraContainer = document.getElementById('lixeira-list');
+
+            tabs.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tab-btn')) {
+                    tabs.querySelector('.active').classList.remove('active');
+                    e.target.classList.add('active');
+                    const targetTab = e.target.dataset.tab;
+                    tabContents.forEach(content => content.classList.toggle('active', content.id === `${targetTab}-list`));
+                }
+            });
+
+            const handleSelectionChange = (container, actionBtn, actionBtn2 = null) => {
+                const checkboxes = container.querySelectorAll('.notification-item-checkbox:checked');
+                actionBtn.disabled = checkboxes.length === 0;
+                if (actionBtn2) actionBtn2.disabled = checkboxes.length === 0;
+            };
+            
+            pendentesContainer.addEventListener('change', () => handleSelectionChange(pendentesContainer, markAsReadBtn));
+            selectAllPendentes.addEventListener('change', (e) => {
+                pendentesContainer.querySelectorAll('.notification-item-checkbox').forEach(cb => cb.checked = e.target.checked);
+                handleSelectionChange(pendentesContainer, markAsReadBtn);
+            });
+            markAsReadBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(pendentesContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
+                let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+                selectedIds.forEach(id => {
+                    if (notificationStatus[id]) {
+                        notificationStatus[id].status = 'read';
+                    }
+                });
+                localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
+                fetchAndRenderNotifications();
+                showToast(`${selectedIds.length} notificaç${selectedIds.length > 1 ? 'ões movidas' : 'ão movida'} para Lidas.`);
+                markAsReadBtn.disabled = true;
+                selectAllPendentes.checked = false;
+            });
+
+            lidasContainer.addEventListener('change', () => handleSelectionChange(lidasContainer, moveToTrashBtn));
+            selectAllLidas.addEventListener('change', (e) => {
+                lidasContainer.querySelectorAll('.notification-item-checkbox').forEach(cb => cb.checked = e.target.checked);
+                handleSelectionChange(lidasContainer, moveToTrashBtn);
+            });
+            moveToTrashBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(lidasContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
+                let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+                selectedIds.forEach(id => {
+                    if (notificationStatus[id]) { 
+                        notificationStatus[id].status = 'trashed';
+                        notificationStatus[id].trashed_at = new Date().toISOString();
+                    }
+                });
+                localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
+                fetchAndRenderNotifications();
+                showToast(`${selectedIds.length} notificaç${selectedIds.length > 1 ? 'ões movidas' : 'ão movida'} para a Lixeira.`);
+                moveToTrashBtn.disabled = true;
+                selectAllLidas.checked = false;
+            });
+
+            lixeiraContainer.addEventListener('change', () => handleSelectionChange(lixeiraContainer, recoverBtn, deletePermBtn));
+            selectAllLixeira.addEventListener('change', (e) => {
+                lixeiraContainer.querySelectorAll('.notification-item-checkbox').forEach(cb => cb.checked = e.target.checked);
+                handleSelectionChange(lixeiraContainer, recoverBtn, deletePermBtn);
+            });
+            recoverBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(lixeiraContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
+                let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+                selectedIds.forEach(id => {
+                    if (notificationStatus[id]) {
+                        notificationStatus[id].status = 'read';
+                        notificationStatus[id].trashed_at = null;
+                    }
+                });
+                localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
+                fetchAndRenderNotifications();
+                showToast(`${selectedIds.length} notificaç${selectedIds.length > 1 ? 'ões recuperadas' : 'ão recuperada'}.`);
+                recoverBtn.disabled = true;
+                deletePermBtn.disabled = true;
+                selectAllLixeira.checked = false;
+            });
+            deletePermBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(lixeiraContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
+                if (selectedIds.length === 0) return;
+                showConfirmationModal({
+                    title: 'Excluir Permanentemente',
+                    message: 'Esta ação não pode ser desfeita. As notificações selecionadas não aparecerão novamente.',
+                    keyword: 'CONFIRMAR',
+                    onConfirm: () => {
+                        let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+                        selectedIds.forEach(id => {
+                            if (notificationStatus[id]) {
+                                notificationStatus[id].status = 'deleted';
+                            }
+                        });
+                        localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
+                        fetchAndRenderNotifications();
+                        showToast('Notificações excluídas permanentemente.');
+                        recoverBtn.disabled = true;
+                        deletePermBtn.disabled = true;
+                        selectAllLixeira.checked = false;
+                    }
+                });
+            });
+        }
+
+        if (notificationToggle) {
+            notificationToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notificationPanel.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                if (notificationPanel && !notificationPanel.classList.contains('hidden') && !notificationPanel.contains(e.target) && !notificationToggle.contains(e.target)) {
+                    notificationPanel.classList.add('hidden');
+                }
+            });
+        }
     }
     
-    if(loginForm) {
+    // =================================================================================
+    // 5. INICIALIZAÇÃO PRINCIPAL (Decide o que fazer com base na página)
+    // =================================================================================
+
+    if (loginForm) {
+        // --- Lógica para a PÁGINA DE LOGIN (login.php) ---
+        if (loginContainer) loginContainer.classList.remove('hidden');
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(loginForm);
@@ -1436,48 +1844,56 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const result = await postAPI(formData);
 
-            if (result && result.success) {
-                loginContainer.style.opacity = 0;
-                setTimeout(() => {
-                    checkLoginStatus();
-                }, 400);
+            if (result && result.success && result.redirect_url) {
+                window.location.href = result.redirect_url;
             } else {
                 const loginError = document.getElementById('login-error');
-                 loginError.textContent = result ? result.message : 'E-mail ou senha inválidos.';
-                 loginForm.parentElement.classList.add('shake');
-                 setTimeout(() => loginForm.parentElement.classList.remove('shake'), 500);
+                 if(loginError) loginError.textContent = result ? result.message : 'E-mail ou senha inválidos.';
+                 const loginBox = document.querySelector('.login-box');
+                 if(loginBox) {
+                    loginBox.classList.add('shake');
+                    setTimeout(() => loginBox.classList.remove('shake'), 500);
+                 }
             }
         });
-    }
 
-    const passwordInput = document.getElementById('password');
-    const togglePassword = document.getElementById('toggle-password');
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
-    }
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('toggle-password');
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('fa-eye');
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
+        }
 
-    const forgotPasswordLink = document.getElementById('forgot-password-link');
-    if(forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', async function(e){
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            if (!email) {
-                showToast('Por favor, digite seu e-mail para recuperar a senha.', 'error');
-                return;
-            }
-            const formData = new FormData();
-            formData.append('action', 'esqueci_senha');
-            formData.append('email', email);
-            const result = await postAPI(formData);
-            if(result) showToast(result.message);
-        });
-    }
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        if(forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', async function(e){
+                e.preventDefault();
+                const emailInput = document.getElementById('email');
+                if(!emailInput) return;
+                const email = emailInput.value;
 
+                if (!email) {
+                    showToast('Por favor, digite seu e-mail para recuperar a senha.', 'error');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('action', 'esqueci_senha');
+                formData.append('email', email);
+                const result = await postAPI(formData);
+                if(result) showToast(result.message);
+            });
+        }
+    } else if (appWrapper) {
+        // --- Lógica para o PAINEL PRINCIPAL (index.php) ---
+        appWrapper.classList.remove('hidden');
+        initializeApp();
+    }
+    
+    // --- Lógica comum a ambas as páginas ---
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
     if(themeToggle) {
@@ -1486,6 +1902,4 @@ document.addEventListener('DOMContentLoaded', function() {
             applyTheme(newTheme);
         });
     }
-
-    checkLoginStatus();
 });
