@@ -95,6 +95,12 @@ main { padding-top: 40px; padding-bottom: 100px; }
     border-left: 5px solid var(--azul-principal);
 }
 .funcionario-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: var(--sombra-media); }
+.funcionario-card-content p i {
+    margin-right: 10px; 
+    width: 20px;       
+    text-align: center;
+}
+
 .card-actions { border-top: 1px solid var(--cinza-borda); margin-top: 20px; padding-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
 .card-btn { background: none; border: 1px solid var(--cinza-borda); border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; }
 
@@ -705,24 +711,82 @@ body.dark-mode .filtros-principais .filter-group {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 20px;
 }
+
+
 .explorer-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
     position: relative;
 }
-.explorer-item:hover {
-    background-color: #e9ecef;
-    transform: translateY(-5px);
+
+/* Contêiner que agrupa os botões (editar, excluir) */
+.explorer-item .item-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 5px;
+    opacity: 0; /* Começa invisível */
+    transform: translateY(-5px); /* Efeito de deslizar de cima */
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    z-index: 5;
 }
-body.dark-mode .explorer-item:hover {
+
+/* Os botões aparecem suavemente quando o mouse está sobre o item */
+.explorer-item:hover .item-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Estilo base dos botões (editar/excluir) */
+.item-actions .action-btn {
+    background-color: #ffffff;
+    border: 1px solid var(--cinza-borda);
+    color: var(--cinza-texto);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px; /* Bordas levemente arredondadas */
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Efeito de destaque ao passar o mouse */
+.item-actions .action-btn:hover {
+    transform: scale(1.1);
+    color: #fff;
+}
+
+.item-actions .action-btn.edit:hover {
+    background-color: var(--azul-principal);
+    border-color: var(--azul-principal);
+}
+
+.item-actions .action-btn.delete:hover {
+    background-color: var(--vermelho-erro);
+    border-color: var(--vermelho-erro);
+}
+
+/* --- Estilos para o Dark Mode --- */
+body.dark-mode .item-actions .action-btn {
     background-color: #2a2a52;
+    border-color: #4a4a6e;
+    color: #e0e0e0;
 }
+
+body.dark-mode .item-actions .action-btn.edit:hover {
+    background-color: var(--azul-principal);
+    border-color: var(--azul-principal);
+}
+
+body.dark-mode .item-actions .action-btn.delete:hover {
+    background-color: var(--vermelho-erro);
+    border-color: var(--vermelho-erro);
+}
+
+
 .explorer-item i {
     font-size: 3rem;
     margin-bottom: 10px;
@@ -738,16 +802,9 @@ body.dark-mode .explorer-item:hover {
     font-weight: 500;
     word-break: break-word;
 }
-.explorer-item .item-actions {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    display: none;
-    gap: 5px;
-}
-.explorer-item:hover .item-actions {
-    display: flex;
-}
+
+
+
 .item-actions .action-btn {
     background: none;
     border: none;
@@ -1037,3 +1094,432 @@ body.dark-mode #logout-btn.logout-button:hover {
     background-color: var(--vermelho-erro);
     color: #fff;
 }
+
+/* ================================================= */
+/* === ESTILOS PARA O SISTEMA DE NOTIFICAÇÃO (VERSÃO FINAL) === */
+/* ================================================= */
+
+.notification-container {
+    position: relative;
+}
+
+#notification-toggle {
+    background: none;
+    border: 1px solid var(--cinza-borda);
+    color: var(--azul-principal);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+}
+#notification-toggle:hover {
+    background-color: var(--azul-principal);
+    color: #fff;
+}
+
+#notification-count {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background-color: var(--vermelho-erro);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+}
+
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 360px;
+    max-height: 400px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: var(--sombra-media);
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateY(10px);
+    opacity: 0;
+}
+.notification-panel:not(.hidden) {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.notification-panel-header {
+    padding: 15px 20px 0 20px;
+    border-bottom: 1px solid var(--cinza-borda);
+    flex-shrink: 0;
+}
+.notification-panel-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: var(--azul-escuro);
+}
+.notification-panel-body {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* Abas (Tabs) */
+.notification-tabs {
+    display: flex;
+    gap: 15px;
+}
+.notification-tabs .tab-btn {
+    padding: 10px 5px;
+    font-size: 15px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    color: var(--cinza-texto);
+}
+.notification-tabs .tab-btn.active {
+    color: var(--azul-principal);
+    border-bottom-color: var(--azul-principal);
+}
+
+/* Containers das Listas e Itens */
+.notification-list-container {
+    display: none;
+}
+.notification-list-container.active {
+    display: block;
+}
+
+.notification-category-header {
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #999;
+    padding: 15px 20px 5px 20px;
+    background-color: var(--cinza-fundo);
+}
+.notification-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--cinza-borda);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.notification-item:last-child {
+    border-bottom: none;
+}
+.notification-item:hover {
+    background-color: var(--cinza-fundo);
+}
+.notification-item-content p {
+    margin: 0;
+    font-size: 14px;
+}
+.notification-item-content .meta {
+    font-size: 12px;
+    color: #888;
+}
+.notification-item.vencido .icon {
+    color: var(--vermelho-erro);
+}
+.notification-item.vencendo .icon {
+    color: var(--amarelo-aviso);
+}
+.notification-item.aniversario .icon {
+    color: var(--roxo-info);
+}
+.notification-item.read {
+    background-color: #f8f9fa;
+}
+.notification-item.read:hover {
+    opacity: 1;
+}
+.no-notifications {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--cinza-texto);
+}
+
+/* Pop-up de Notificação Inicial */
+.onload-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: var(--sombra-media);
+    border-left: 5px solid var(--azul-principal);
+    z-index: 10000;
+    transform: translateX(120%);
+    transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+.onload-notification:not(.hidden) {
+    transform: translateX(0);
+}
+.onload-notification-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+.onload-notification-header i {
+    font-size: 20px;
+    color: var(--azul-principal);
+    margin-right: 10px;
+}
+.onload-notification-header h4 {
+    margin: 0;
+    font-size: 16px;
+    flex-grow: 1;
+    color: var(--azul-escuro);
+}
+.onload-notification .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #aaa;
+}
+.onload-notification-body {
+    padding: 15px;
+    font-size: 14px;
+}
+.onload-notification-body p {
+    margin: 0;
+}
+
+/* Dark Mode para todo o sistema de notificação */
+body.dark-mode #notification-toggle {
+    border-color: var(--cinza-borda);
+}
+body.dark-mode #notification-count {
+    border-color: #1e1e3f;
+}
+body.dark-mode .notification-panel {
+    background-color: #1e1e3f;
+    border: 1px solid var(--cinza-borda);
+}
+body.dark-mode .notification-panel-header {
+    border-bottom-color: var(--cinza-borda);
+}
+body.dark-mode .notification-panel-header h3 {
+    color: #fff;
+}
+body.dark-mode .notification-tabs .tab-btn {
+    color: #aaa;
+}
+body.dark-mode .notification-tabs .tab-btn.active {
+    color: var(--cor-destaque);
+    border-bottom-color: var(--cor-destaque);
+}
+body.dark-mode .notification-category-header {
+    background-color: #2a2a52;
+    color: #888;
+}
+body.dark-mode .notification-item:hover {
+    background-color: #2a2a52;
+}
+body.dark-mode .notification-item-content .meta {
+    color: #aaa;
+}
+body.dark-mode .notification-item.read {
+    background-color: #252546;
+}
+body.dark-mode .onload-notification {
+    background-color: #1e1e3f;
+    border-left-color: var(--cor-destaque);
+    border: 1px solid var(--cinza-borda);
+}
+body.dark-mode .onload-notification-header {
+    background-color: rgba(0, 123, 255, 0.2);
+}
+body.dark-mode .onload-notification-header h4 {
+    color: #fff;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+    .notification-panel {
+        width: 90vw;
+        right: -15px;
+    }
+    .onload-notification {
+        width: 90%;
+        left: 5%;
+        right: 5%;
+        bottom: 10px;
+    }
+}
+
+/* ================================================= */
+/* === MELHORIAS NO SISTEMA DE NOTIFICAÇÃO  === */
+/* ================================================= */
+
+/* Barra de Ações (Selecionar Todos, etc.) */
+.notification-list-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: var(--cinza-fundo);
+    border-bottom: 1px solid var(--cinza-borda);
+    flex-shrink: 0;
+}
+.select-all-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.select-all-container label {
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.notification-select-all {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+.action-btn-lote {
+    background: none;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: var(--azul-principal);
+}
+.action-btn-lote:hover:not(:disabled) {
+    background-color: #e9ecef;
+}
+.action-btn-lote:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+.action-btn-lote i {
+    margin-right: 5px;
+}
+
+/* Wrapper para a lista de itens (para scroll) */
+.notification-items-wrapper {
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* Ajustes no item de notificação para incluir o checkbox */
+.notification-item {
+    gap: 10px;
+    padding-left: 15px;
+}
+.notification-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Dark Mode para os novos elementos */
+body.dark-mode .notification-list-actions {
+    background-color: #2a2a52;
+    border-bottom-color: var(--cinza-borda);
+}
+body.dark-mode .action-btn-lote {
+    color: var(--cor-destaque);
+}
+body.dark-mode .action-btn-lote:hover:not(:disabled) {
+    background-color: #1e1e3f;
+}
+body.dark-mode .action-btn-lote:disabled {
+    color: #666;
+}
+
+/* ================================================= */
+/* === MELHORIAS NA LIXEIRA DE NOTIFICAÇÕES === */
+/* ================================================= */
+
+
+.notification-tabs .tab-btn {
+    padding: 10px 2px; 
+    font-size: 14px;
+}
+
+/* Estilo para item na lixeira */
+.notification-item.trashed {
+    background-color: #f1f1f1;
+}
+.notification-item.trashed .meta {
+    font-style: italic;
+}
+
+/* Dark Mode para item na lixeira */
+body.dark-mode .notification-item.trashed {
+    background-color: #20203a;
+}
+
+/* AVISO DA LIXEIRA DE NOTIFICAÇÕES */
+.trash-warning {
+    padding: 10px 15px;
+    margin: 10px 15px;
+    background-color: #fff9e1; /* Amarelo claro para aviso */
+    border: 1px solid #ffecb3;
+    border-radius: 6px;
+    font-size: 13px;
+    text-align: center;
+    color: #6d5b0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Dark Mode para o aviso */
+body.dark-mode .trash-warning {
+    background-color: rgba(255, 236, 179, 0.1);
+    border-color: rgba(255, 236, 179, 0.2);
+    color: #ffecb3;
+}
+
+#modal-input .input-dialog {
+    max-width: 420px;
+    text-align: center;
+    padding: 40px 30px 30px 30px;
+}
+#modal-input .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+    margin-top: 10px;
+}
+#modal-input .confirmation-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+body.dark-mode #modal-input .input-dialog {
+    background-color: #2a2a52;
+}
+
