@@ -121,9 +121,6 @@ CREATE TABLE `usuario` (
   UNIQUE KEY `email_unique` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `usuario` (`nome`, `email`, `senha`) VALUES
-('Administrador', 'admin@empresa.com.br', '123');
-
 -- ======================================================================================
 -- PARTE 2: INSERÇÃO DE DADOS DE AMOSTRA (POPULAÇÃO DAS TABELAS)
 -- (Cole aqui o script com os 40 funcionários de exemplo)
