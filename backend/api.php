@@ -3,6 +3,14 @@
 
     session_start();
 
+    set_error_handler(function($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity)) {
+        return;
+    }
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+try {
     ini_set('display_errors', 1);
     error_reporting(E_ALL);
 
@@ -28,11 +36,13 @@
             if ($usuario && password_verify($senha, $usuario['senha'])) {
                 $_SESSION['user_id'] = $usuario['id'];
                 $_SESSION['user_nome'] = $usuario['nome'];
-                echo json_encode(['success' => true]);
+                // ALTERAÇÃO AQUI: Envia a URL de redirecionamento
+                echo json_encode(['success' => true, 'redirect_url' => 'index.php']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'E-mail ou senha inválidos.']);
             }
             break;
+
 
         case 'logout':
             session_destroy();
@@ -307,50 +317,51 @@
             echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
         }
         break;
+
+        case 'rename_folder':
+            $pasta_id = $_POST['pasta_id'] ?? 0;
+            $novo_nome = trim($_POST['novo_nome'] ?? '');
+            if (!empty($pasta_id) && !empty($novo_nome)) {
+                $stmt = $pdo->prepare("UPDATE pastas SET nome_pasta = ? WHERE id = ?");
+                $success = $stmt->execute([$novo_nome, $pasta_id]);
+                echo json_encode(['success' => $success, 'message' => $success ? 'Pasta renomeada.' : 'Erro ao renomear.']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
+            }
+            break;
         
     case 'upload_arquivo':
-        $pasta_id = $_POST['pasta_id'] ?? 0;
-        
-        if (empty($pasta_id) || !isset($_FILES['arquivo']) || $_FILES['arquivo']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Erro no envio do arquivo ou pasta de destino inválida.']);
-            exit();
-        }
+                $pasta_id = $_POST['pasta_id'] ?? 0;
+                
+                if (empty($pasta_id) || !isset($_FILES['arquivo']) || $_FILES['arquivo']['error'] !== UPLOAD_ERR_OK) {
+                    throw new Exception('Erro no envio do arquivo ou pasta de destino inválida.');
+                }
 
-        $arquivo = $_FILES['arquivo'];
-        $nome_original = basename($arquivo['name']);
-        $tipo_arquivo = $arquivo['type'];
-        $nome_temporario = $arquivo['tmp_name'];
-        
-        $upload_dir = dirname(__DIR__) . '/uploads/';
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
+                $arquivo = $_FILES['arquivo'];
+                $nome_original = basename($arquivo['name']);
+                $tipo_arquivo = $arquivo['type'];
+                $nome_temporario = $arquivo['tmp_name'];
+                
+                $upload_dir = dirname(__DIR__) . '/uploads/';
+                if (!is_dir($upload_dir)) {
+                    if (!mkdir($upload_dir, 0755, true)) {
+                        throw new Exception('Falha ao criar a pasta de uploads.');
+                    }
+                }
 
-        $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
-        $nome_seguro = uniqid('', true) . '.' . $extensao;
-        $caminho_destino = $upload_dir . $nome_seguro;
-        $caminho_para_db = 'uploads/' . $nome_seguro;
-        
-        if (move_uploaded_file($nome_temporario, $caminho_destino)) {
-            $stmt = $pdo->prepare("INSERT INTO documentos (pasta_id, nome_original, caminho_arquivo, tipo_arquivo) VALUES (?, ?, ?, ?)");
-            $success = $stmt->execute([$pasta_id, $nome_original, $caminho_para_db, $tipo_arquivo]);
-            echo json_encode(['success' => $success]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Falha ao mover o arquivo. Verifique as permissões da pasta uploads.']);
-        }
-        break;
-
-    case 'renomear_pasta':
-        $pasta_id = $_POST['pasta_id'] ?? 0;
-        $novo_nome = trim($_POST['novo_nome'] ?? '');
-        if (!empty($pasta_id) && !empty($novo_nome)) {
-            $stmt = $pdo->prepare("UPDATE pastas SET nome_pasta = ? WHERE id = ?");
-            $success = $stmt->execute([$novo_nome, $pasta_id]);
-            echo json_encode(['success' => $success]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'ID ou novo nome da pasta não fornecido.']);
-        }
-        break;
+                $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
+                $nome_seguro = uniqid('', true) . '.' . $extensao;
+                $caminho_destino = $upload_dir . $nome_seguro;
+                $caminho_para_db = 'uploads/' . $nome_seguro;
+                
+                if (move_uploaded_file($nome_temporario, $caminho_destino)) {
+                    $stmt = $pdo->prepare("INSERT INTO documentos (pasta_id, nome_original, caminho_arquivo, tipo_arquivo) VALUES (?, ?, ?, ?)");
+                    $success = $stmt->execute([$pasta_id, $nome_original, $caminho_para_db, $tipo_arquivo]);
+                    echo json_encode(['success' => $success]);
+                } else {
+                    throw new Exception('Falha ao mover o arquivo. Verifique as permissões da pasta uploads.');
+                }
+                break;
     
     case 'excluir_pasta':
         $pasta_id = $_POST['pasta_id'] ?? 0;
@@ -440,10 +451,73 @@
 
         echo json_encode(['success' => $success]);
         break;
+
+        case 'get_notifications':
+    try {
+        $response = [
+            'vencimentos' => [],
+            'datas_importantes' => []
+        ];
+        
+        // --- VENCIMENTOS (próximos 30 dias ou já vencido) ---
+        $data_limite_venc = date('Y-m-d', strtotime('+30 days'));
+        $sql_venc = "
+            (SELECT id, nome, 'CNH' as tipo, validade_cnh as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cnh IS NOT NULL AND validade_cnh <= ?)
+            UNION ALL
+            (SELECT id, nome, 'Exame Médico' as tipo, validade_exame_medico as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_exame_medico IS NOT NULL AND validade_exame_medico <= ?)
+            UNION ALL
+            (SELECT id, nome, 'Treinamento' as tipo, validade_treinamento as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_treinamento IS NOT NULL AND validade_treinamento <= ?)
+            UNION ALL
+            (SELECT id, nome, 'CCT' as tipo, validade_cct as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cct IS NOT NULL AND validade_cct <= ?)
+            UNION ALL
+            (SELECT id, nome, 'Contrato de Exp.' as tipo, validade_contrato_experiencia as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_contrato_experiencia IS NOT NULL AND validade_contrato_experiencia <= ?)
+            ORDER BY data_evento ASC
+        ";
+        $stmt_venc = $pdo->prepare($sql_venc);
+        $stmt_venc->execute(array_fill(0, 5, $data_limite_venc));
+        $response['vencimentos'] = $stmt_venc->fetchAll();
+        $hoje_dia_mes = date('m-d');
+        $limite_dia_mes = date('m-d', strtotime('+7 days'));
+
+        $sql_aniver = "SELECT id, nome, 'Aniversário' as tipo, data_nascimento as data_evento FROM funcionarios WHERE status = 'ativo' AND data_nascimento IS NOT NULL";
+
+        if ($hoje_dia_mes <= $limite_dia_mes) {
+        
+            $sql_aniver .= " AND DATE_FORMAT(data_nascimento, '%m-%d') BETWEEN ? AND ?";
+            $params_aniver = [$hoje_dia_mes, $limite_dia_mes];
+        } else {
+            
+            $sql_aniver .= " AND (DATE_FORMAT(data_nascimento, '%m-%d') >= ? OR DATE_FORMAT(data_nascimento, '%m-%d') <= ?)";
+            $params_aniver = [$hoje_dia_mes, $limite_dia_mes];
+        }
+        $sql_aniver .= " ORDER BY DATE_FORMAT(data_nascimento, '%m-%d') ASC";
+        
+        $stmt_aniver = $pdo->prepare($sql_aniver);
+        $stmt_aniver->execute($params_aniver);
+        $response['datas_importantes'] = $stmt_aniver->fetchAll();
+
+        echo json_encode(['success' => true, 'data' => $response]);
+
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erro ao buscar notificações: ' . $e->getMessage()]);
+    }
+    break;
                
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Ação não reconhecida.']);
         break;
+    }
 }
+catch (Throwable $e) {
+    // Se qualquer erro acontecer, ele será capturado aqui.
+    http_response_code(500); // Erro interno do servidor
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
+}
+
 ?>
