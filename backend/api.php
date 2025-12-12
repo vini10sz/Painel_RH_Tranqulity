@@ -1,5 +1,5 @@
 <?php
-    // backend/api.php - Versão Final com Sistema de Login Completo
+    // backend/api.php - Versão Final Atualizada
 
     session_start();
 
@@ -36,13 +36,11 @@ try {
             if ($usuario && password_verify($senha, $usuario['senha'])) {
                 $_SESSION['user_id'] = $usuario['id'];
                 $_SESSION['user_nome'] = $usuario['nome'];
-                // ALTERAÇÃO AQUI: Envia a URL de redirecionamento
                 echo json_encode(['success' => true, 'redirect_url' => 'index.php']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'E-mail ou senha inválidos.']);
             }
             break;
-
 
         case 'logout':
             session_destroy();
@@ -58,30 +56,34 @@ try {
             break;
 
         case 'esqueci_senha':
-            // A lógica de envio de e-mail não funcionará em localhost sem configuração.
-            // Este código está preparado para um servidor real.
+            // Funcionalidade simulada para ambiente local
             echo json_encode(['success' => true, 'message' => 'Se o e-mail existir, um link de recuperação foi enviado. (Funcionalidade de envio de e-mail desativada em ambiente local)']);
             break;
 
-    case 'get_all_funcionarios':
-        try {
-            $stmt = $pdo->query("SELECT * FROM funcionarios ORDER BY nome ASC");
-            $funcionarios = $stmt->fetchAll();
-            $response = ['ativos' => [], 'inativos' => []];
-            foreach ($funcionarios as $func) {
-                if ($func['status'] === 'ativo') {
-                    $response['ativos'][] = $func;
-                } else {
-                    $response['inativos'][] = $func;
+        case 'get_all_funcionarios':
+            try {
+                $stmt = $pdo->query("SELECT * FROM funcionarios ORDER BY nome ASC");
+                $funcionarios = $stmt->fetchAll();
+                
+                // ATUALIZAÇÃO: Separação em 3 categorias (Ativos, Afastados, Inativos)
+                $response = ['ativos' => [], 'afastados' => [], 'inativos' => []];
+                
+                foreach ($funcionarios as $func) {
+                    if ($func['status'] === 'ativo') {
+                        $response['ativos'][] = $func;
+                    } elseif ($func['status'] === 'afastado') {
+                        $response['afastados'][] = $func;
+                    } else {
+                        $response['inativos'][] = $func;
+                    }
                 }
+                echo json_encode(['success' => true, 'data' => $response]);
+            } catch (PDOException $e) {
+                echo json_encode(['success' => false, 'message' => 'Erro ao buscar funcionários: ' . $e->getMessage()]);
             }
-            echo json_encode(['success' => true, 'data' => $response]);
-        } catch (PDOException $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro ao buscar funcionários: ' . $e->getMessage()]);
-        }
-        break;
+            break;
 
-    case 'get_filtered_funcionarios':
+        case 'get_filtered_funcionarios':
         try {
             $status = $_GET['status'] ?? 'ativo';
             $base_sql = "SELECT * FROM funcionarios WHERE status = ?";
@@ -96,8 +98,8 @@ try {
                 $params[] = $_GET['unidade'];
             }
             if (!empty($_GET['empresa']) && $_GET['empresa'] !== 'Todas') {
-            $base_sql .= " AND empresa = ?";
-            $params[] = $_GET['empresa'];
+                $base_sql .= " AND empresa = ?";
+                $params[] = $_GET['empresa'];
             }
             if (!empty($_GET['genero'])) {
                 $base_sql .= " AND genero = ?";
@@ -111,9 +113,19 @@ try {
                 $base_sql .= " AND estado = ?";
                 $params[] = $_GET['estado'];
             }
+            // NOVO FILTRO DE TRANSPORTE
+            if (!empty($_GET['transporte'])) {
+                $base_sql .= " AND opcao_transporte = ?";
+                $params[] = $_GET['transporte'];
+            }
+            
             if (!empty($_GET['vencimento'])) {
                 $coluna = $_GET['vencimento'];
-                $colunas_permitidas = ['validade_cnh', 'validade_exame_medico', 'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia'];
+                $colunas_permitidas = [
+                    'validade_cnh', 'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia',
+                    'validade_exame_clinico', 'validade_audiometria', 'validade_eletrocardiograma',
+                    'validade_eletroencefalograma', 'validade_glicemia', 'validade_acuidade_visual'
+                ];
                 if (in_array($coluna, $colunas_permitidas)) {
                     $base_sql .= " AND {$coluna} IS NOT NULL AND {$coluna} <= CURDATE()";
                 }
@@ -132,191 +144,208 @@ try {
         }
         break;
 
-    case 'get_funcionario':
-        $id = $_GET['id'] ?? 0;
-        $stmt = $pdo->prepare("SELECT * FROM funcionarios WHERE id = ?");
-        $stmt->execute([$id]);
-        $funcionario = $stmt->fetch();
-        echo json_encode(['success' => true, 'data' => $funcionario]);
-        break;
-    
-    case 'add_funcionario':
-    $pdo->beginTransaction();
-    try {
-        $dados = $_POST;
-        unset($dados['action'], $dados['id']);
-        unset($dados['tem_filhos']);
-            if (isset($dados['data_movimentacao'])) {
-                if ($dados['status'] === 'ativo') { $dados['data_admissao'] = $dados['data_movimentacao']; }
-                else { $dados['data_demissao'] = $dados['data_movimentacao']; }
-                unset($dados['data_movimentacao']);
+        case 'get_funcionario':
+            $id = $_GET['id'] ?? 0;
+            $stmt = $pdo->prepare("SELECT * FROM funcionarios WHERE id = ?");
+            $stmt->execute([$id]);
+            $funcionario = $stmt->fetch();
+            echo json_encode(['success' => true, 'data' => $funcionario]);
+            break;
+        
+        case 'add_funcionario':
+            $pdo->beginTransaction();
+            try {
+                $dados = $_POST;
+                unset($dados['action'], $dados['id']);
+                unset($dados['tem_filhos']); // Campo auxiliar do front
+                
+                // Tratamento de datas de movimentação
+                if (isset($dados['data_movimentacao'])) {
+                    if ($dados['status'] === 'ativo') { 
+                        $dados['data_admissao'] = $dados['data_movimentacao']; 
+                    } elseif ($dados['status'] === 'inativo') { 
+                        $dados['data_demissao'] = $dados['data_movimentacao']; 
+                    }
+                    // Se for 'afastado', geralmente mantém a data de admissão original ou usa uma data de afastamento específica, 
+                    // mas para simplificar, se vier como 'afastado' na criação, assumimos que data_movimentacao é admissão ou ignoramos se já existe.
+                    // Neste código, mantemos a lógica original de admissão para novos cadastros.
+                    if ($dados['status'] !== 'inativo') {
+                         $dados['data_admissao'] = $dados['data_movimentacao'];
+                    }
+                    unset($dados['data_movimentacao']);
+                }
+                
+                // A montagem dinâmica da query aceita automaticamente os novos campos (opcao_transporte, validades novas)
+                // desde que os "names" no HTML correspondam às colunas do BD.
+                $colunas = []; $placeholders = []; $valores = [];
+                foreach ($dados as $coluna => $valor) {
+                    if ($valor !== '') {
+                        $colunas[] = "`" . $coluna . "`"; 
+                        $placeholders[] = "?"; 
+                        $valores[] = $valor;
+                    }
+                }
+                
+                $sql = sprintf('INSERT INTO funcionarios (%s) VALUES (%s)', implode(', ', $colunas), implode(', ', $placeholders));
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($valores);
+                
+                $novo_funcionario_id = $pdo->lastInsertId();
+
+                // Criação de pastas padrão
+                $stmt_raiz = $pdo->prepare("INSERT INTO pastas (funcionario_id, nome_pasta) VALUES (?, 'Raiz')");
+                $stmt_raiz->execute([$novo_funcionario_id]);
+                $id_pasta_raiz = $pdo->lastInsertId();
+
+                $pastas_padrao = ["Atestado", "Contrato", "Disciplinar", "Documentos Pessoais", "Férias", "Holerites", "Ponto", "Sinistro", "Treinamento", "Outros"];
+                $stmt_subpasta = $pdo->prepare("INSERT INTO pastas (funcionario_id, parent_id, nome_pasta) VALUES (?, ?, ?)");
+                foreach ($pastas_padrao as $nome_pasta) {
+                    $stmt_subpasta->execute([$novo_funcionario_id, $id_pasta_raiz, $nome_pasta]);
+                }
+
+                $pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Funcionário e estrutura de pastas criados com sucesso!']);
+
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Erro no servidor: ' . $e->getMessage()]);
             }
+            break;
+
+        case 'update_funcionario':
+            try {
+                $dados = $_POST;
+                $id = $dados['id'];
+                unset($dados['action'], $dados['id']);
+                unset($dados['tem_filhos']);
+
+                if (isset($dados['data_movimentacao'])) {
+                    if ($dados['status'] === 'ativo') { $dados['data_admissao'] = $dados['data_movimentacao']; }
+                    elseif ($dados['status'] === 'inativo') { $dados['data_demissao'] = $dados['data_movimentacao']; }
+                    unset($dados['data_movimentacao']);
+                }
+                
+                $set_parts = [];
+                $valores = [];
+                foreach ($dados as $coluna => $valor) {
+                    $set_parts[] = "`" . $coluna . "`" . " = ?";
+                    $valores[] = ($valor === '') ? null : $valor;
+                }
+                $valores[] = $id;
+
+                if (count($set_parts) > 0) {
+                    $sql = sprintf('UPDATE funcionarios SET %s WHERE id = ?', implode(', ', $set_parts));
+                    $stmt = $pdo->prepare($sql);
+                    $success = $stmt->execute($valores);
+                    echo json_encode(['success' => $success, 'message' => 'Funcionário atualizado com sucesso!']);
+                } else {
+                     echo json_encode(['success' => false, 'message' => 'Nenhum dado para atualizar.']);
+                }
+            } catch (PDOException $e) {
+                echo json_encode(['success' => false, 'message' => 'Erro no servidor: ' . $e->getMessage()]);
+            }
+            break;
+
+        case 'terminate_funcionario':
+            $id = $_POST['id'] ?? 0;
+            $data_demissao = $_POST['data_demissao'] ?? null;
+            $motivo_demissao = $_POST['motivo_demissao'] ?? null;
+            $elegivel_recontratacao = $_POST['elegivel_recontratacao'] ?? null;
             
-            $colunas = []; $placeholders = []; $valores = [];
-            foreach ($dados as $coluna => $valor) {
-                if ($valor !== '') {
-                    $colunas[] = "`" . $coluna . "`"; $placeholders[] = "?"; $valores[] = $valor;
+            $stmt = $pdo->prepare(
+                "UPDATE funcionarios 
+                 SET status = 'inativo', 
+                     data_demissao = ?, 
+                     motivo_demissao = ?, 
+                     elegivel_recontratacao = ? 
+                 WHERE id = ?"
+            );
+            $params = [$data_demissao, $motivo_demissao, $elegivel_recontratacao, $id];
+            $success = $stmt->execute($params);
+            echo json_encode(['success' => $success, 'message' => 'Contrato encerrado com sucesso.']);
+            break;
+            
+        case 'delete_funcionario':
+            $id = $_POST['id'];
+            $stmt = $pdo->prepare("DELETE FROM funcionarios WHERE id = ?");
+            $success = $stmt->execute([$id]);
+            echo json_encode(['success' => $success]);
+            break;
+
+        // --- AÇÕES PARA GESTÃO DE DOCUMENTOS ---
+        case 'get_folder_id_by_name':
+            $funcionario_id = $_GET['funcionario_id'] ?? 0;
+            $folder_name = $_GET['folder_name'] ?? '';
+        
+            $stmt_raiz = $pdo->prepare("SELECT id FROM pastas WHERE funcionario_id = ? AND parent_id IS NULL");
+            $stmt_raiz->execute([$funcionario_id]);
+            $raiz = $stmt_raiz->fetch();
+            
+            if (!$raiz) {
+                $stmt_cria_raiz = $pdo->prepare("INSERT INTO pastas (funcionario_id, nome_pasta) VALUES (?, 'Raiz')");
+                $stmt_cria_raiz->execute([$funcionario_id]);
+                $id_pasta_raiz = $pdo->lastInsertId();
+            } else {
+                $id_pasta_raiz = $raiz['id'];
+            }
+        
+            $stmt_pasta = $pdo->prepare("SELECT id FROM pastas WHERE funcionario_id = ? AND nome_pasta = ? AND parent_id = ?");
+            $stmt_pasta->execute([$funcionario_id, $folder_name, $id_pasta_raiz]);
+            $pasta = $stmt_pasta->fetch();
+        
+            if (!$pasta) {
+                $stmt_cria_pasta = $pdo->prepare("INSERT INTO pastas (funcionario_id, parent_id, nome_pasta) VALUES (?, ?, ?)");
+                $stmt_cria_pasta->execute([$funcionario_id, $id_pasta_raiz, $folder_name]);
+                $id_nova_pasta = $pdo->lastInsertId();
+                echo json_encode(['success' => true, 'folder_id' => $id_nova_pasta]);
+            } else {
+                echo json_encode(['success' => true, 'folder_id' => $pasta['id']]);
+            }
+            break;
+
+        case 'listar_pastas_e_arquivos':
+            $funcionario_id = $_GET['funcionario_id'] ?? 0;
+            $parent_id = isset($_GET['parent_id']) && $_GET['parent_id'] !== 'null' ? $_GET['parent_id'] : null;
+
+            $response = ['pastas' => [], 'documentos' => [], 'current_folder_id' => null];
+
+            if ($parent_id === null) {
+                $stmt_raiz = $pdo->prepare("SELECT id FROM pastas WHERE funcionario_id = ? AND parent_id IS NULL LIMIT 1");
+                $stmt_raiz->execute([$funcionario_id]);
+                $pasta_raiz = $stmt_raiz->fetch();
+                if ($pasta_raiz) {
+                    $parent_id = $pasta_raiz['id'];
                 }
             }
             
-            $sql = sprintf('INSERT INTO funcionarios (%s) VALUES (%s)', implode(', ', $colunas), implode(', ', $placeholders));
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($valores);
-            
-            $novo_funcionario_id = $pdo->lastInsertId();
+            $response['current_folder_id'] = $parent_id;
 
-            $stmt_raiz = $pdo->prepare("INSERT INTO pastas (funcionario_id, nome_pasta) VALUES (?, 'Raiz')");
-            $stmt_raiz->execute([$novo_funcionario_id]);
-            $id_pasta_raiz = $pdo->lastInsertId();
+            if ($parent_id) {
+                $stmt_pastas = $pdo->prepare("SELECT * FROM pastas WHERE parent_id = ? ORDER BY nome_pasta ASC");
+                $stmt_pastas->execute([$parent_id]);
+                $response['pastas'] = $stmt_pastas->fetchAll();
 
-            $pastas_padrao = ["Atestado", "Contrato", "Disciplinar", "Documentos Pessoais", "Férias", "Holerites", "Ponto", "Sinistro", "Treinamento", "Outros"];
-            $stmt_subpasta = $pdo->prepare("INSERT INTO pastas (funcionario_id, parent_id, nome_pasta) VALUES (?, ?, ?)");
-            foreach ($pastas_padrao as $nome_pasta) {
-                $stmt_subpasta->execute([$novo_funcionario_id, $id_pasta_raiz, $nome_pasta]);
-            }
-
-            $pdo->commit();
-            echo json_encode(['success' => true, 'message' => 'Funcionário e estrutura de pastas criados com sucesso!']);
-
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            echo json_encode(['success' => false, 'message' => 'Erro no servidor: ' . $e->getMessage()]);
-        }
-        break;
-
-    case 'update_funcionario':
-        try {
-            $dados = $_POST;
-            $id = $dados['id'];
-            unset($dados['action'], $dados['id']);
-            unset($dados['tem_filhos']);
-            if (isset($dados['data_movimentacao'])) {
-                if ($dados['status'] === 'ativo') { $dados['data_admissao'] = $dados['data_movimentacao']; }
-                else { $dados['data_demissao'] = $dados['data_movimentacao']; }
-                unset($dados['data_movimentacao']);
+                $stmt_docs = $pdo->prepare("SELECT * FROM documentos WHERE pasta_id = ? ORDER BY nome_original ASC");
+                $stmt_docs->execute([$parent_id]);
+                $response['documentos'] = $stmt_docs->fetchAll();
             }
             
-            $set_parts = [];
-            $valores = [];
-            foreach ($dados as $coluna => $valor) {
-                $set_parts[] = "`" . $coluna . "`" . " = ?";
-                $valores[] = ($valor === '') ? null : $valor;
-            }
-            $valores[] = $id;
+            echo json_encode(['success' => true, 'data' => $response]);
+            break;
 
-            if (count($set_parts) > 0) {
-                $sql = sprintf('UPDATE funcionarios SET %s WHERE id = ?', implode(', ', $set_parts));
-                $stmt = $pdo->prepare($sql);
-                $success = $stmt->execute($valores);
-                echo json_encode(['success' => $success, 'message' => 'Funcionário atualizado com sucesso!']);
+        case 'criar_pasta':
+            $funcionario_id = $_POST['funcionario_id'] ?? 0;
+            $parent_id = $_POST['parent_id'] ?? 0;
+            $nome_pasta = trim($_POST['nome_pasta'] ?? '');
+
+            if (!empty($nome_pasta) && !empty($funcionario_id) && !empty($parent_id)) {
+                $stmt = $pdo->prepare("INSERT INTO pastas (funcionario_id, parent_id, nome_pasta) VALUES (?, ?, ?)");
+                $success = $stmt->execute([$funcionario_id, $parent_id, $nome_pasta]);
+                echo json_encode(['success' => $success]);
             } else {
-                 echo json_encode(['success' => false, 'message' => 'Nenhum dado para atualizar.']);
+                echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
             }
-        } catch (PDOException $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro no servidor: ' . $e->getMessage()]);
-        }
-        break;
-
-    case 'terminate_funcionario':
-        $id = $_POST['id'] ?? 0;
-        $data_demissao = $_POST['data_demissao'] ?? null;
-        $motivo_demissao = $_POST['motivo_demissao'] ?? null;
-        $elegivel_recontratacao = $_POST['elegivel_recontratacao'] ?? null;
-        
-        $stmt = $pdo->prepare(
-            "UPDATE funcionarios 
-             SET status = 'inativo', 
-                 data_demissao = ?, 
-                 motivo_demissao = ?, 
-                 elegivel_recontratacao = ? 
-             WHERE id = ?"
-        );
-        $params = [$data_demissao, $motivo_demissao, $elegivel_recontratacao, $id];
-        $success = $stmt->execute($params);
-        echo json_encode(['success' => $success, 'message' => 'Contrato encerrado com sucesso.']);
-        break;
-        
-    case 'delete_funcionario':
-        $id = $_POST['id'];
-        $stmt = $pdo->prepare("DELETE FROM funcionarios WHERE id = ?");
-        $success = $stmt->execute([$id]);
-        echo json_encode(['success' => $success]);
-        break;
-
-    // --- AÇÕES PARA GESTÃO DE DOCUMENTOS ---
-    case 'get_folder_id_by_name':
-        $funcionario_id = $_GET['funcionario_id'] ?? 0;
-        $folder_name = $_GET['folder_name'] ?? '';
-    
-        $stmt_raiz = $pdo->prepare("SELECT id FROM pastas WHERE funcionario_id = ? AND parent_id IS NULL");
-        $stmt_raiz->execute([$funcionario_id]);
-        $raiz = $stmt_raiz->fetch();
-        
-        if (!$raiz) {
-            $stmt_cria_raiz = $pdo->prepare("INSERT INTO pastas (funcionario_id, nome_pasta) VALUES (?, 'Raiz')");
-            $stmt_cria_raiz->execute([$funcionario_id]);
-            $id_pasta_raiz = $pdo->lastInsertId();
-        } else {
-            $id_pasta_raiz = $raiz['id'];
-        }
-    
-        $stmt_pasta = $pdo->prepare("SELECT id FROM pastas WHERE funcionario_id = ? AND nome_pasta = ? AND parent_id = ?");
-        $stmt_pasta->execute([$funcionario_id, $folder_name, $id_pasta_raiz]);
-        $pasta = $stmt_pasta->fetch();
-    
-        if (!$pasta) {
-            $stmt_cria_pasta = $pdo->prepare("INSERT INTO pastas (funcionario_id, parent_id, nome_pasta) VALUES (?, ?, ?)");
-            $stmt_cria_pasta->execute([$funcionario_id, $id_pasta_raiz, $folder_name]);
-            $id_nova_pasta = $pdo->lastInsertId();
-            echo json_encode(['success' => true, 'folder_id' => $id_nova_pasta]);
-        } else {
-            echo json_encode(['success' => true, 'folder_id' => $pasta['id']]);
-        }
-        break;
-
-    case 'listar_pastas_e_arquivos':
-        $funcionario_id = $_GET['funcionario_id'] ?? 0;
-        $parent_id = isset($_GET['parent_id']) && $_GET['parent_id'] !== 'null' ? $_GET['parent_id'] : null;
-
-        $response = ['pastas' => [], 'documentos' => [], 'current_folder_id' => null];
-
-        if ($parent_id === null) {
-            $stmt_raiz = $pdo->prepare("SELECT id FROM pastas WHERE funcionario_id = ? AND parent_id IS NULL LIMIT 1");
-            $stmt_raiz->execute([$funcionario_id]);
-            $pasta_raiz = $stmt_raiz->fetch();
-            if ($pasta_raiz) {
-                $parent_id = $pasta_raiz['id'];
-            }
-        }
-        
-        $response['current_folder_id'] = $parent_id;
-
-        if ($parent_id) {
-            $stmt_pastas = $pdo->prepare("SELECT * FROM pastas WHERE parent_id = ? ORDER BY nome_pasta ASC");
-            $stmt_pastas->execute([$parent_id]);
-            $response['pastas'] = $stmt_pastas->fetchAll();
-
-            $stmt_docs = $pdo->prepare("SELECT * FROM documentos WHERE pasta_id = ? ORDER BY nome_original ASC");
-            $stmt_docs->execute([$parent_id]);
-            $response['documentos'] = $stmt_docs->fetchAll();
-        }
-        
-        echo json_encode(['success' => true, 'data' => $response]);
-        break;
-
-    case 'criar_pasta':
-        $funcionario_id = $_POST['funcionario_id'] ?? 0;
-        $parent_id = $_POST['parent_id'] ?? 0;
-        $nome_pasta = trim($_POST['nome_pasta'] ?? '');
-
-        if (!empty($nome_pasta) && !empty($funcionario_id) && !empty($parent_id)) {
-            $stmt = $pdo->prepare("INSERT INTO pastas (funcionario_id, parent_id, nome_pasta) VALUES (?, ?, ?)");
-            $success = $stmt->execute([$funcionario_id, $parent_id, $nome_pasta]);
-            echo json_encode(['success' => $success]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
-        }
-        break;
+            break;
 
         case 'rename_folder':
             $pasta_id = $_POST['pasta_id'] ?? 0;
@@ -329,184 +358,206 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
             }
             break;
-        
-    case 'upload_arquivo':
-                $pasta_id = $_POST['pasta_id'] ?? 0;
-                
-                if (empty($pasta_id) || !isset($_FILES['arquivo']) || $_FILES['arquivo']['error'] !== UPLOAD_ERR_OK) {
-                    throw new Exception('Erro no envio do arquivo ou pasta de destino inválida.');
-                }
-
-                $arquivo = $_FILES['arquivo'];
-                $nome_original = basename($arquivo['name']);
-                $tipo_arquivo = $arquivo['type'];
-                $nome_temporario = $arquivo['tmp_name'];
-                
-                $upload_dir = dirname(__DIR__) . '/uploads/';
-                if (!is_dir($upload_dir)) {
-                    if (!mkdir($upload_dir, 0755, true)) {
-                        throw new Exception('Falha ao criar a pasta de uploads.');
-                    }
-                }
-
-                $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
-                $nome_seguro = uniqid('', true) . '.' . $extensao;
-                $caminho_destino = $upload_dir . $nome_seguro;
-                $caminho_para_db = 'uploads/' . $nome_seguro;
-                
-                if (move_uploaded_file($nome_temporario, $caminho_destino)) {
-                    $stmt = $pdo->prepare("INSERT INTO documentos (pasta_id, nome_original, caminho_arquivo, tipo_arquivo) VALUES (?, ?, ?, ?)");
-                    $success = $stmt->execute([$pasta_id, $nome_original, $caminho_para_db, $tipo_arquivo]);
-                    echo json_encode(['success' => $success]);
-                } else {
-                    throw new Exception('Falha ao mover o arquivo. Verifique as permissões da pasta uploads.');
-                }
-                break;
-    
-    case 'excluir_pasta':
-        $pasta_id = $_POST['pasta_id'] ?? 0;
-        if (empty($pasta_id)) {
-            echo json_encode(['success' => false, 'message' => 'ID da pasta não fornecido.']);
-            exit();
-        }
-
-        $stmt_subpastas = $pdo->prepare("SELECT COUNT(*) FROM pastas WHERE parent_id = ?");
-        $stmt_subpastas->execute([$pasta_id]);
-        $num_subpastas = $stmt_subpastas->fetchColumn();
-
-        $stmt_docs = $pdo->prepare("SELECT COUNT(*) FROM documentos WHERE pasta_id = ?");
-        $stmt_docs->execute([$pasta_id]);
-        $num_docs = $stmt_docs->fetchColumn();
-
-        if ($num_subpastas == 0 && $num_docs == 0) {
-            $stmt = $pdo->prepare("DELETE FROM pastas WHERE id = ?");
-            $success = $stmt->execute([$pasta_id]);
-            echo json_encode(['success' => $success]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Não é possível excluir. A pasta não está vazia.']);
-        }
-        break;
-        
-    case 'excluir_arquivo':
-        $documento_id = $_POST['documento_id'] ?? 0;
-        if (empty($documento_id)) {
-            echo json_encode(['success' => false, 'message' => 'ID do documento não fornecido.']);
-            exit();
-        }
-
-        $pdo->beginTransaction();
-        try {
-            $stmt_doc = $pdo->prepare("SELECT caminho_arquivo FROM documentos WHERE id = ?");
-            $stmt_doc->execute([$documento_id]);
-            $documento = $stmt_doc->fetch();
-
-            if ($documento) {
-                $caminho_arquivo = dirname(__DIR__) . '/' . $documento['caminho_arquivo'];
-                
-                $stmt_delete = $pdo->prepare("DELETE FROM documentos WHERE id = ?");
-                $stmt_delete->execute([$documento_id]);
-
-                if (file_exists($caminho_arquivo)) {
-                    unlink($caminho_arquivo);
-                }
-                
-                $pdo->commit();
-                echo json_encode(['success' => true]);
-            } else {
-                throw new Exception('Documento não encontrado.');
+            
+        case 'upload_arquivo':
+            $pasta_id = $_POST['pasta_id'] ?? 0;
+            
+            if (empty($pasta_id) || !isset($_FILES['arquivo']) || $_FILES['arquivo']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('Erro no envio do arquivo ou pasta de destino inválida.');
             }
-        } catch(Exception $e) {
-            $pdo->rollBack();
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-        break;
 
-    // --- AÇÕES DO DASHBOARD ---
-    case 'get_status_diario':
-        $data = $_GET['data'] ?? date('Y-m-d');
-        $unidade = $_GET['unidade'] ?? 'Todos';
+            $arquivo = $_FILES['arquivo'];
+            $nome_original = basename($arquivo['name']);
+            $tipo_arquivo = $arquivo['type'];
+            $nome_temporario = $arquivo['tmp_name'];
+            
+            $upload_dir = dirname(__DIR__) . '/uploads/';
+            if (!is_dir($upload_dir)) {
+                if (!mkdir($upload_dir, 0755, true)) {
+                    throw new Exception('Falha ao criar a pasta de uploads.');
+                }
+            }
+
+            $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
+            $nome_seguro = uniqid('', true) . '.' . $extensao;
+            $caminho_destino = $upload_dir . $nome_seguro;
+            $caminho_para_db = 'uploads/' . $nome_seguro;
+            
+            if (move_uploaded_file($nome_temporario, $caminho_destino)) {
+                $stmt = $pdo->prepare("INSERT INTO documentos (pasta_id, nome_original, caminho_arquivo, tipo_arquivo) VALUES (?, ?, ?, ?)");
+                $success = $stmt->execute([$pasta_id, $nome_original, $caminho_para_db, $tipo_arquivo]);
+                echo json_encode(['success' => $success]);
+            } else {
+                throw new Exception('Falha ao mover o arquivo. Verifique as permissões da pasta uploads.');
+            }
+            break;
         
-        $stmt = $pdo->prepare("SELECT * FROM status_diario WHERE data = ? AND unidade = ?");
-        $stmt->execute([$data, $unidade]);
-        $status = $stmt->fetch();
-        
-        echo json_encode(['success' => true, 'data' => $status ?: null]);
-        break;
+        case 'excluir_pasta':
+            $pasta_id = $_POST['pasta_id'] ?? 0;
+            if (empty($pasta_id)) {
+                echo json_encode(['success' => false, 'message' => 'ID da pasta não fornecido.']);
+                exit();
+            }
 
-    case 'save_status_diario':
-        $data = $_POST['data'];
-        $unidade = $_POST['unidade'];
+            $stmt_subpastas = $pdo->prepare("SELECT COUNT(*) FROM pastas WHERE parent_id = ?");
+            $stmt_subpastas->execute([$pasta_id]);
+            $num_subpastas = $stmt_subpastas->fetchColumn();
 
-        $sql = "INSERT INTO status_diario (data, unidade, presentes, ferias, atestado, folga, falta_injustificada)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                presentes = VALUES(presentes), ferias = VALUES(ferias), atestado = VALUES(atestado), 
-                folga = VALUES(folga), falta_injustificada = VALUES(falta_injustificada)";
-        
-        $stmt = $pdo->prepare($sql);
-        $success = $stmt->execute([
-            $data, $unidade, $_POST['presentes'] ?? 0, $_POST['ferias'] ?? 0,
-            $_POST['atestado'] ?? 0, $_POST['folga'] ?? 0, $_POST['falta_injustificada'] ?? 0
-        ]);
+            $stmt_docs = $pdo->prepare("SELECT COUNT(*) FROM documentos WHERE pasta_id = ?");
+            $stmt_docs->execute([$pasta_id]);
+            $num_docs = $stmt_docs->fetchColumn();
 
-        echo json_encode(['success' => $success]);
-        break;
+            if ($num_subpastas == 0 && $num_docs == 0) {
+                $stmt = $pdo->prepare("DELETE FROM pastas WHERE id = ?");
+                $success = $stmt->execute([$pasta_id]);
+                echo json_encode(['success' => $success]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Não é possível excluir. A pasta não está vazia.']);
+            }
+            break;
+            
+        case 'excluir_arquivo':
+            $documento_id = $_POST['documento_id'] ?? 0;
+            if (empty($documento_id)) {
+                echo json_encode(['success' => false, 'message' => 'ID do documento não fornecido.']);
+                exit();
+            }
+
+            $pdo->beginTransaction();
+            try {
+                $stmt_doc = $pdo->prepare("SELECT caminho_arquivo FROM documentos WHERE id = ?");
+                $stmt_doc->execute([$documento_id]);
+                $documento = $stmt_doc->fetch();
+
+                if ($documento) {
+                    $caminho_arquivo = dirname(__DIR__) . '/' . $documento['caminho_arquivo'];
+                    
+                    $stmt_delete = $pdo->prepare("DELETE FROM documentos WHERE id = ?");
+                    $stmt_delete->execute([$documento_id]);
+
+                    if (file_exists($caminho_arquivo)) {
+                        unlink($caminho_arquivo);
+                    }
+                    
+                    $pdo->commit();
+                    echo json_encode(['success' => true]);
+                } else {
+                    throw new Exception('Documento não encontrado.');
+                }
+            } catch(Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            break;
+
+        // --- AÇÕES DO DASHBOARD ---
+        case 'get_status_diario':
+            $data = $_GET['data'] ?? date('Y-m-d');
+            $unidade = $_GET['unidade'] ?? 'Todos';
+            
+            $stmt = $pdo->prepare("SELECT * FROM status_diario WHERE data = ? AND unidade = ?");
+            $stmt->execute([$data, $unidade]);
+            $status = $stmt->fetch();
+            
+            echo json_encode(['success' => true, 'data' => $status ?: null]);
+            break;
+
+        case 'save_status_diario':
+            // ATUALIZAÇÃO: Incluindo 'afastados' no salvamento do dashboard
+            $data = $_POST['data'];
+            $unidade = $_POST['unidade'];
+
+            $sql = "INSERT INTO status_diario (data, unidade, presentes, ferias, atestado, afastados, folga, falta_injustificada)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    presentes = VALUES(presentes), ferias = VALUES(ferias), atestado = VALUES(atestado), 
+                    afastados = VALUES(afastados), folga = VALUES(folga), falta_injustificada = VALUES(falta_injustificada)";
+            
+            $stmt = $pdo->prepare($sql);
+            $success = $stmt->execute([
+                $data, $unidade, $_POST['presentes'] ?? 0, $_POST['ferias'] ?? 0,
+                $_POST['atestado'] ?? 0, $_POST['afastados'] ?? 0, 
+                $_POST['folga'] ?? 0, $_POST['falta_injustificada'] ?? 0
+            ]);
+
+            echo json_encode(['success' => $success]);
+            break;
 
         case 'get_notifications':
-    try {
-        $response = [
-            'vencimentos' => [],
-            'datas_importantes' => []
-        ];
-        
-        // --- VENCIMENTOS (próximos 30 dias ou já vencido) ---
-        $data_limite_venc = date('Y-m-d', strtotime('+30 days'));
-        $sql_venc = "
-            (SELECT id, nome, 'CNH' as tipo, validade_cnh as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cnh IS NOT NULL AND validade_cnh <= ?)
-            UNION ALL
-            (SELECT id, nome, 'Exame Médico' as tipo, validade_exame_medico as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_exame_medico IS NOT NULL AND validade_exame_medico <= ?)
-            UNION ALL
-            (SELECT id, nome, 'Treinamento' as tipo, validade_treinamento as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_treinamento IS NOT NULL AND validade_treinamento <= ?)
-            UNION ALL
-            (SELECT id, nome, 'CCT' as tipo, validade_cct as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cct IS NOT NULL AND validade_cct <= ?)
-            UNION ALL
-            (SELECT id, nome, 'Contrato de Exp.' as tipo, validade_contrato_experiencia as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_contrato_experiencia IS NOT NULL AND validade_contrato_experiencia <= ?)
-            ORDER BY data_evento ASC
-        ";
-        $stmt_venc = $pdo->prepare($sql_venc);
-        $stmt_venc->execute(array_fill(0, 5, $data_limite_venc));
-        $response['vencimentos'] = $stmt_venc->fetchAll();
-        $hoje_dia_mes = date('m-d');
-        $limite_dia_mes = date('m-d', strtotime('+7 days'));
+            try {
+                $response = [
+                    'vencimentos' => [],
+                    'datas_importantes' => []
+                ];
+                
+                // --- VENCIMENTOS ---
+                // Regra Geral: 30 dias
+                $data_limite_venc = date('Y-m-d', strtotime('+30 days'));
+                // Regra Exceção (Contrato de Experiência): 10 dias
+                $data_limite_contrato = date('Y-m-d', strtotime('+10 days'));
+                
+                $sql_venc = "
+                    (SELECT id, nome, 'CNH' as tipo, validade_cnh as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cnh IS NOT NULL AND validade_cnh <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Exame Clínico' as tipo, validade_exame_clinico as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_exame_clinico IS NOT NULL AND validade_exame_clinico <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Audiometria' as tipo, validade_audiometria as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_audiometria IS NOT NULL AND validade_audiometria <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Eletrocardiograma' as tipo, validade_eletrocardiograma as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_eletrocardiograma IS NOT NULL AND validade_eletrocardiograma <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Eletroencefalograma' as tipo, validade_eletroencefalograma as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_eletroencefalograma IS NOT NULL AND validade_eletroencefalograma <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Glicemia' as tipo, validade_glicemia as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_glicemia IS NOT NULL AND validade_glicemia <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Acuidade Visual' as tipo, validade_acuidade_visual as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_acuidade_visual IS NOT NULL AND validade_acuidade_visual <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Treinamento' as tipo, validade_treinamento as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_treinamento IS NOT NULL AND validade_treinamento <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Data Base CCT' as tipo, validade_cct as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cct IS NOT NULL AND validade_cct <= ?)
+                    UNION ALL
+                    (SELECT id, nome, 'Contrato de Exp.' as tipo, validade_contrato_experiencia as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_contrato_experiencia IS NOT NULL AND validade_contrato_experiencia <= ?)
+                    ORDER BY data_evento ASC
+                ";
+                
+                // Preenche os 9 primeiros placeholders com 30 dias e o último com 10 dias
+                $params_venc = array_fill(0, 9, $data_limite_venc);
+                $params_venc[] = $data_limite_contrato;
 
-        $sql_aniver = "SELECT id, nome, 'Aniversário' as tipo, data_nascimento as data_evento FROM funcionarios WHERE status = 'ativo' AND data_nascimento IS NOT NULL";
+                $stmt_venc = $pdo->prepare($sql_venc);
+                $stmt_venc->execute($params_venc);
+                $response['vencimentos'] = $stmt_venc->fetchAll();
+                
+                // --- ANIVERSÁRIOS ---
+                $hoje_dia_mes = date('m-d');
+                $limite_dia_mes = date('m-d', strtotime('+30 days')); // Aniversariantes do mês/próximos 30 dias
 
-        if ($hoje_dia_mes <= $limite_dia_mes) {
-        
-            $sql_aniver .= " AND DATE_FORMAT(data_nascimento, '%m-%d') BETWEEN ? AND ?";
-            $params_aniver = [$hoje_dia_mes, $limite_dia_mes];
-        } else {
-            
-            $sql_aniver .= " AND (DATE_FORMAT(data_nascimento, '%m-%d') >= ? OR DATE_FORMAT(data_nascimento, '%m-%d') <= ?)";
-            $params_aniver = [$hoje_dia_mes, $limite_dia_mes];
-        }
-        $sql_aniver .= " ORDER BY DATE_FORMAT(data_nascimento, '%m-%d') ASC";
-        
-        $stmt_aniver = $pdo->prepare($sql_aniver);
-        $stmt_aniver->execute($params_aniver);
-        $response['datas_importantes'] = $stmt_aniver->fetchAll();
+                $sql_aniver = "SELECT id, nome, 'Aniversário' as tipo, data_nascimento as data_evento FROM funcionarios WHERE status = 'ativo' AND data_nascimento IS NOT NULL";
 
-        echo json_encode(['success' => true, 'data' => $response]);
+                if ($hoje_dia_mes <= $limite_dia_mes) {
+                    $sql_aniver .= " AND DATE_FORMAT(data_nascimento, '%m-%d') BETWEEN ? AND ?";
+                    $params_aniver = [$hoje_dia_mes, $limite_dia_mes];
+                } else {
+                    // Trata virada de ano
+                    $sql_aniver .= " AND (DATE_FORMAT(data_nascimento, '%m-%d') >= ? OR DATE_FORMAT(data_nascimento, '%m-%d') <= ?)";
+                    $params_aniver = [$hoje_dia_mes, $limite_dia_mes];
+                }
+                $sql_aniver .= " ORDER BY DATE_FORMAT(data_nascimento, '%m-%d') ASC";
+                
+                $stmt_aniver = $pdo->prepare($sql_aniver);
+                $stmt_aniver->execute($params_aniver);
+                $response['datas_importantes'] = $stmt_aniver->fetchAll();
 
-    } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'Erro ao buscar notificações: ' . $e->getMessage()]);
-    }
-    break;
-               
-    default:
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Ação não reconhecida.']);
-        break;
+                echo json_encode(['success' => true, 'data' => $response]);
+
+            } catch (PDOException $e) {
+                echo json_encode(['success' => false, 'message' => 'Erro ao buscar notificações: ' . $e->getMessage()]);
+            }
+            break;
+                
+        default:
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Ação não reconhecida.']);
+            break;
     }
 }
 catch (Throwable $e) {
@@ -519,5 +570,4 @@ catch (Throwable $e) {
         'line' => $e->getLine()
     ]);
 }
-
 ?>
