@@ -24,7 +24,8 @@ CREATE TABLE `funcionarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(255) NOT NULL,
   `funcao` VARCHAR(100) DEFAULT NULL,
-  `status` ENUM('ativo', 'inativo') NOT NULL DEFAULT 'ativo',
+  -- ADICIONADO 'afastado' NO ENUM
+  `status` ENUM('ativo', 'inativo', 'afastado') NOT NULL DEFAULT 'ativo',
   `empresa` VARCHAR(100) DEFAULT NULL,
   `local` VARCHAR(100) DEFAULT NULL,
   `data_admissao` DATE DEFAULT NULL,
@@ -34,9 +35,9 @@ CREATE TABLE `funcionarios` (
   `cpf` VARCHAR(14) DEFAULT NULL,
   `cnh_numero` VARCHAR(100) DEFAULT NULL,
   `estado_civil` VARCHAR(50) DEFAULT NULL,
-  `dados_conjuge` VARCHAR(255) DEFAULT NULL COMMENT 'Armazena dados do cônjuge em formato JSON',
+  `dados_conjuge` VARCHAR(255) DEFAULT NULL,
   `quantidade_filhos` INT DEFAULT 0,
-  `nome_filhos` TEXT DEFAULT NULL COMMENT 'Armazena dados dos filhos em formato JSON',
+  `nome_filhos` TEXT DEFAULT NULL,
   `email_pessoal` VARCHAR(255) DEFAULT NULL,
   `telefone_1` VARCHAR(20) DEFAULT NULL,
   `telefone_2` VARCHAR(20) DEFAULT NULL,
@@ -48,17 +49,27 @@ CREATE TABLE `funcionarios` (
   `bairro` VARCHAR(100) DEFAULT NULL,
   `cidade` VARCHAR(100) DEFAULT NULL,
   `estado` VARCHAR(2) DEFAULT NULL,
+  -- ADICIONADO Opção de Transporte e seus detalhes
+  `opcao_transporte` ENUM('Não Optante', 'Vale Transporte', 'Auxílio Combustível') DEFAULT 'Não Optante',
+  `meio_transporte` VARCHAR(255) DEFAULT NULL,
+  `qtd_transporte` INT DEFAULT NULL,
+  `valor_transporte` VARCHAR(50) DEFAULT NULL,
   `genero` VARCHAR(20) DEFAULT NULL,
   `validade_cnh` DATE DEFAULT NULL,
-  `validade_exame_medico` DATE DEFAULT NULL,
+  -- NOVOS EXAMES ADICIONADOS
+  `validade_exame_clinico` DATE DEFAULT NULL,
+  `validade_audiometria` DATE DEFAULT NULL,
+  `validade_eletrocardiograma` DATE DEFAULT NULL,
+  `validade_eletroencefalograma` DATE DEFAULT NULL,
+  `validade_glicemia` DATE DEFAULT NULL,
+  `validade_acuidade_visual` DATE DEFAULT NULL,
   `validade_treinamento` DATE DEFAULT NULL,
-  `validade_cct` DATE DEFAULT NULL COMMENT 'Antiga validade_sst',
+  `validade_cct` DATE DEFAULT NULL, -- Label será 'Data base CCT' no front
   `validade_contrato_experiencia` DATE DEFAULT NULL,
   `motivo_demissao` TEXT DEFAULT NULL,
   `elegivel_recontratacao` ENUM('Sim', 'Não', 'Avaliar') DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 --
 -- Tabela 2: `status_diario`
@@ -71,6 +82,7 @@ CREATE TABLE `status_diario` (
   `presentes` INT DEFAULT 0,
   `ferias` INT DEFAULT 0,
   `atestado` INT DEFAULT 0,
+  `afastados` INT DEFAULT 0, -- ADICIONADO AQUI
   `folga` INT DEFAULT 0,
   `falta_injustificada` INT DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -175,3 +187,4 @@ LEFT JOIN
     pastas AS p_exist ON f.id = p_exist.funcionario_id AND pastas_padrao.nome_pasta = p_exist.nome_pasta AND p_exist.parent_id = p_raiz.id
 WHERE
     p_exist.id IS NULL;
+    
