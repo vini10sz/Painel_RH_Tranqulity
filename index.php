@@ -25,12 +25,13 @@
                 <nav id="main-nav">
                     <ul>
                         <li><a href="#funcionarios" id="nav-funcionarios" class="active">Ativos</a></li>
+                        <li><a href="#afastados" id="nav-afastados">Afastados</a></li>
                         <li><a href="#inativos" id="nav-inativos">Inativos</a></li>
                         <li><a href="#status" id="nav-status">Dashboard</a></li>
                         <li><a href="https://tparking.com.br/" target="_blank" class="home-link">Site Principal</a></li>
                         <button id="theme-toggle" title="Alternar tema">
-                      <i class="fas fa-moon"></i>
-                  </button>
+                            <i class="fas fa-moon"></i>
+                        </button>
                     </ul>
                 </nav>
                 <div class="header-actions">
@@ -150,7 +151,17 @@
                                 <div class="filter-group">
                                     <label><i class="fas fa-exclamation-triangle"></i> Vencimentos</label>
                                     <select class="expiry-filter">
-                                        <option value="">Nenhum</option><option value="validade_cnh">CNH Vencida</option><option value="validade_exame_medico">Exame Médico Vencido</option><option value="validade_treinamento">Treinamento Vencido</option><option value="validade_cct">CCT Vencida</option><option value="validade_contrato_experiencia">Contrato Exp. Vencido</option>
+                                        <option value="">Nenhum</option>
+                                        <option value="validade_cnh">CNH Vencida</option>
+                                        <option value="validade_exame_clinico">Exame Clínico</option>
+                                        <option value="validade_audiometria">Audiometria</option>
+                                        <option value="validade_eletrocardiograma">Eletrocardiograma</option>
+                                        <option value="validade_eletroencefalograma">Eletroencefalograma</option>
+                                        <option value="validade_glicemia">Glicemia</option>
+                                        <option value="validade_acuidade_visual">Acuidade Visual</option>
+                                        <option value="validade_treinamento">Treinamento</option>
+                                        <option value="validade_cct">Data Base CCT</option>
+                                        <option value="validade_contrato_experiencia">Contrato Exp.</option>
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -158,6 +169,15 @@
                                     <select class="birthday-month-filter">
                                         <option value="">Qualquer Mês</option>
                                         <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-bus"></i> Transporte</label>
+                                    <select class="transport-filter">
+                                        <option value="">Todos</option>
+                                        <option value="Não Optante">Não Optante</option>
+                                        <option value="Vale Transporte">Vale Transporte</option>
+                                        <option value="Auxílio Combustível">Auxílio Combustível</option>
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -181,6 +201,99 @@
                 </div>
             </section>
             
+            <section id="afastados-section" class="content-section">
+                <div class="container">
+                    <div class="section-header-actions">
+                        <div class="section-header"> <i class="fa-solid fa-user-injured"></i> <h2>Colaboradores Afastados</h2></div>
+                    </div>
+                    <div class="filtros-container">
+                        <div class="filtros-principais">
+                            <div class="filter-group"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="search-input" placeholder="Pesquisar por nome..."></div>
+                            <div class="filter-group"><i class="fa-solid fa-sitemap"></i><select class="company-filter"></select></div>
+                            <div class="filter-group"><i class="fa-solid fa-building"></i><select class="location-filter"></select></div>
+                            <button class="advanced-filter-btn">
+                                <i class="fas fa-sliders-h"></i> Filtros Avançados <span class="filter-count"></span>
+                            </button>
+                        </div>
+                        <div class="filtros-avancados">
+                            <div class="grid">
+                                <div class="filter-group">
+                                    <label><i class="fas fa-venus-mars"></i> Gênero</label>
+                                    <select class="gender-filter">
+                                        <option value="">Todos</option><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option><option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group-dynamic">
+                                    <div class="filter-group main-filter">
+                                        <label><i class="fas fa-child"></i> Dependentes</label>
+                                        <select class="children-filter">
+                                            <option value="">Todos</option>
+                                            <option value="sim">Com Filhos</option>
+                                            <option value="nao">Sem Filhos</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group-range sub-filter hidden">
+                                        <label>Idade Específica</label>
+                                        <div class="range-inputs">
+                                            <input type="number" class="children-age-min-filter" placeholder="De" min="0">
+                                            <span>-</span>
+                                            <input type="number" class="children-age-max-filter" placeholder="Até" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-exclamation-triangle"></i> Vencimentos</label>
+                                    <select class="expiry-filter">
+                                        <option value="">Nenhum</option>
+                                        <option value="validade_cnh">CNH Vencida</option>
+                                        <option value="validade_exame_clinico">Exame Clínico</option>
+                                        <option value="validade_audiometria">Audiometria</option>
+                                        <option value="validade_eletrocardiograma">Eletrocardiograma</option>
+                                        <option value="validade_eletroencefalograma">Eletroencefalograma</option>
+                                        <option value="validade_glicemia">Glicemia</option>
+                                        <option value="validade_acuidade_visual">Acuidade Visual</option>
+                                        <option value="validade_treinamento">Treinamento</option>
+                                        <option value="validade_cct">Data Base CCT</option>
+                                        <option value="validade_contrato_experiencia">Contrato Exp.</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-birthday-cake"></i> Mês de Aniversário</label>
+                                    <select class="birthday-month-filter">
+                                        <option value="">Qualquer Mês</option>
+                                        <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-bus"></i> Transporte</label>
+                                    <select class="transport-filter">
+                                        <option value="">Todos</option>
+                                        <option value="Não Optante">Não Optante</option>
+                                        <option value="Vale Transporte">Vale Transporte</option>
+                                        <option value="Auxílio Combustível">Auxílio Combustível</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-city"></i> Cidade</label>
+                                    <input type="text" class="city-filter" placeholder="Digite a cidade...">
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-map-marked-alt"></i> Estado</label>
+                                    <select class="state-filter">
+                                        <option value="">Todos</option>
+                                        <option value="AC">Acre</option><option value="AL">Alagoas</option><option value="AP">Amapá</option><option value="AM">Amazonas</option><option value="BA">Bahia</option><option value="CE">Ceará</option><option value="DF">Distrito Federal</option><option value="ES">Espírito Santo</option><option value="GO">Goiás</option><option value="MA">Maranhão</option><option value="MT">Mato Grosso</option><option value="MS">Mato Grosso do Sul</option><option value="MG">Minas Gerais</option><option value="PA">Pará</option><option value="PB">Paraíba</option><option value="PR">Paraná</option><option value="PE">Pernambuco</option><option value="PI">Piauí</option><option value="RJ">Rio de Janeiro</option><option value="RN">Rio Grande do Norte</option><option value="RS">Rio Grande do Sul</option><option value="RO">Rondônia</option><option value="RR">Roraima</option><option value="SC">Santa Catarina</option><option value="SP">São Paulo</option><option value="SE">Sergipe</option><option value="TO">Tocantins</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="advanced-filters-footer">
+                                <button class="clear-filters-btn"><i class="fas fa-times"></i> Limpar Filtros Avançados</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="funcionarios-grid" id="funcionariosGridAfastados"></div>
+                </div>
+            </section>
+
             <section id="inativos-section" class="content-section">
                 <div class="container">
                      <div class="section-header-actions">
@@ -238,6 +351,15 @@
                                     </select>
                                 </div>
                                 <div class="filter-group">
+                                    <label><i class="fas fa-bus"></i> Transporte</label>
+                                    <select class="transport-filter">
+                                        <option value="">Todos</option>
+                                        <option value="Não Optante">Não Optante</option>
+                                        <option value="Vale Transporte">Vale Transporte</option>
+                                        <option value="Auxílio Combustível">Auxílio Combustível</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
                                     <label><i class="fas fa-city"></i> Cidade</label>
                                     <input type="text" class="city-filter" placeholder="Digite a cidade...">
                                 </div>
@@ -266,6 +388,7 @@
                     </div>
                     <div class="status-summary summary-totals">
                         <div class="summary-card total"><div class="card-icon"><i class="fas fa-users"></i></div><div class="info"><h4>Total Ativos</h4><span id="total-ativos">0</span></div></div>
+                        <div class="summary-card afastados-total"><div class="card-icon" style="background-color: #6f42c1;"><i class="fas fa-user-injured"></i></div><div class="info"><h4>Total Afastados</h4><span id="total-afastados">0</span></div></div>
                         <div class="summary-card inativos"><div class="card-icon"><i class="fas fa-user-slash"></i></div><div class="info"><h4>Total Inativos</h4><span id="total-inativos">0</span></div></div>
                     </div>
 
@@ -291,6 +414,7 @@
                     <div class="status-summary">
                         <div class="summary-card presente"><div class="card-icon"><i class="fas fa-user-check"></i></div><div class="info"><h4>Presentes</h4><input type="number" min="0" id="input-presentes"></div></div>
                         <div class="summary-card falta"><div class="card-icon"><i class="fas fa-user-times"></i></div><div class="info"><h4>Faltas (Injus.)</h4><input type="number" min="0" id="input-falta_injustificada"></div></div>
+                        <div class="summary-card afastados"><div class="card-icon" style="background-color: #6f42c1;"><i class="fas fa-user-injured"></i></div><div class="info"><h4>Afastados (INSS)</h4><input type="number" min="0" id="input-afastados"></div></div>
                         <div class="summary-card folga"><div class="card-icon"><i class="fas fa-couch"></i></div><div class="info"><h4>Folga</h4><input type="number" min="0" id="input-folga"></div></div>
                         <div class="summary-card ferias"><div class="card-icon"><i class="fas fa-plane-departure"></i></div><div class="info"><h4>Férias</h4><input type="number" min="0" id="input-ferias"></div></div>
                         <div class="summary-card atestado"><div class="card-icon"><i class="fas fa-file-medical"></i></div><div class="info"><h4>Atestado</h4><input type="number" min="0" id="input-atestado"></div></div>
@@ -480,6 +604,14 @@
                                 <div class="form-group"> <label for="funcao">Função</label> <input type="text" id="funcao" name="funcao" required> </div>
                                 <div class="form-group"> <label for="empresa">Empresa</label> <select id="empresa" name="empresa" required></select> </div>
                                 <div class="form-group"> <label for="local">Unidade</label> <select id="local" name="local" required></select> </div>
+                                <div class="form-group">
+                                    <label for="status">Situação Atual</label>
+                                    <select id="status" name="status" required>
+                                        <option value="ativo">Ativo (Trabalhando)</option>
+                                        <option value="afastado">Afastado (INSS/Licença)</option>
+                                        <option value="inativo" disabled hidden>Inativo</option>
+                                    </select>
+                                </div>
                                 <div class="form-group"> <label for="data_movimentacao" id="data_movimentacao_label">Data</label> <input type="date" id="data_movimentacao" name="data_movimentacao" required> </div>
                             </div>
                         </div>
@@ -538,15 +670,46 @@
                                 <div class="form-group"> <label for="bairro">Bairro</label> <input type="text" id="bairro" name="bairro"> </div>
                                 <div class="form-group"> <label for="cidade">Cidade</label> <input type="text" id="cidade" name="cidade"> </div>
                                 <div class="form-group"> <label for="estado">Estado</label> <input type="text" id="estado" name="estado" maxlength="2"> </div>
+                                <div class="form-group grid-full-width">
+                                    <label for="opcao_transporte">Benefício de Transporte</label>
+                                    <select id="opcao_transporte" name="opcao_transporte">
+                                        <option value="Não Optante">Não Optante</option>
+                                        <option value="Vale Transporte">Vale Transporte</option>
+                                        <option value="Auxílio Combustível">Auxílio Combustível</option>
+                                    </select>
+                                </div>
+                                <div id="vt-details" class="grid-full-width hidden" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="meio_transporte">Meio de Transporte</label>
+                                            <input type="text" id="meio_transporte" name="meio_transporte" placeholder="Ex: Metrô, Ônibus...">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="qtd_transporte">Quantidade Diária</label>
+                                            <input type="number" id="qtd_transporte" name="qtd_transporte" placeholder="Ex: 2">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="valor_transporte">Valor Total Diário</label>
+                                            <input type="text" id="valor_transporte" name="valor_transporte" placeholder="Ex: R$ 10,00">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="form-step" data-step="3">
-                            <div class="form-group-divider">Validades</div>
+                            <div class="form-group-divider">Validades e Exames</div>
                             <div class="form-grid">
                                 <div class="form-group"> <label for="validade_cnh">Venc. CNH</label> <input type="date" id="validade_cnh" name="validade_cnh"> </div>
-                                <div class="form-group"> <label for="validade_exame_medico">Venc. Exame Médico</label> <input type="date" id="validade_exame_medico" name="validade_exame_medico"> </div>
+                                
+                                <div class="form-group"> <label for="validade_exame_clinico">Exame Clínico</label> <input type="date" id="validade_exame_clinico" name="validade_exame_clinico"> </div>
+                                <div class="form-group"> <label for="validade_audiometria">Audiometria</label> <input type="date" id="validade_audiometria" name="validade_audiometria"> </div>
+                                <div class="form-group"> <label for="validade_eletrocardiograma">Eletrocardiograma</label> <input type="date" id="validade_eletrocardiograma" name="validade_eletrocardiograma"> </div>
+                                <div class="form-group"> <label for="validade_eletroencefalograma">Eletroencefalograma</label> <input type="date" id="validade_eletroencefalograma" name="validade_eletroencefalograma"> </div>
+                                <div class="form-group"> <label for="validade_glicemia">Glicemia</label> <input type="date" id="validade_glicemia" name="validade_glicemia"> </div>
+                                <div class="form-group"> <label for="validade_acuidade_visual">Acuidade Visual</label> <input type="date" id="validade_acuidade_visual" name="validade_acuidade_visual"> </div>
+                                
                                 <div class="form-group"> <label for="validade_treinamento">Venc. Treinamento</label> <input type="date" id="validade_treinamento" name="validade_treinamento"> </div>
-                                <div class="form-group"> <label for="validade_cct">Venc. CCT</label> <input type="date" id="validade_cct" name="validade_cct"> </div>
+                                <div class="form-group"> <label for="validade_cct">Data Base CCT</label> <input type="date" id="validade_cct" name="validade_cct"> </div>
                                 <div class="form-group"> <label for="validade_contrato_experiencia">Fim Contrato Exp.</label> <input type="date" id="validade_contrato_experiencia" name="validade_contrato_experiencia"> </div>
                             </div>
                         </div>
@@ -558,7 +721,6 @@
                         <button type="button" class="form-nav-btn next">Próximo <i class="fas fa-arrow-right"></i></button>
                     </div>
                     <input type="hidden" id="employee-id" name="id">
-                    <input type="hidden" id="employee-status" name="status">
                     <button type="submit" class="form-submit-btn"><i class="fas fa-save"></i> Salvar Colaborador</button>
                 </div>
             </form>
