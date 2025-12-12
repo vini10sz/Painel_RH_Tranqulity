@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final com todas as correções
+// assets/js/script.js - Versão Final: Proteção contra fechamento acidental do formulário
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -16,12 +16,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.getElementById('menu-toggle');
     const sections = document.querySelectorAll('.content-section');
     const navLinks = document.querySelectorAll('#main-nav a');
+    
+    // Elementos de Notificação
     const notificationToggle = document.getElementById('notification-toggle');
     const notificationPanel = document.getElementById('notification-panel');
     const notificationCount = document.getElementById('notification-count');
     const onloadNotificationPopup = document.getElementById('onload-notification-popup');
 
-    let masterEmployeeList = { ativos: [], inativos: [] };
+    // Inicialização das listas de funcionários
+    let masterEmployeeList = { ativos: [], afastados: [], inativos: [] };
+    
     let statusChartInstance = null;
     let dashboardInitialized = false;
     const API_URL = 'backend/api.php';
@@ -32,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const empresas = ["Tranquility", "GSM", "Protector", "GS1"];
     const unidades = [
-        "Prevent Sênior - Hospital Madri", "IGESP - Hospital Praia Grande", "IGESP - Pronto Atendimento Santos",
+        "Prevent Sênior - Hospital Madri", "IGESP - Hospital Praia Grande", "IGESP - Hospital Santo Amaro", "IGESP - Pronto Atendimento Santos",
         "IGESP - Pronto Atendimento Santo André", "IGESP - Pronto Atendimento Congonhas", "IGESP - Pronto Atendimento Anália Franco",
         "Grupo Santa Marcelina Itaquera - Sede", "Grupo Santa Marcelina Itaquera - AME", "Grupo Santa Marcelina Itaquera - Instituto",
         "Grupo Santa Marcelina Itaquera - Torre", "Grupo Santa Marcelina Itaquera - Faculdade Santa Marcelina",
@@ -204,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         modal.classList.remove('hidden');
+        input.focus();
     }
 
     function showInputModal({ title, message, placeholder, onConfirm }) {
@@ -355,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mainNav) mainNav.classList.remove('active');
         window.scrollTo(0, 0);
     
-        if (hash === '#funcionarios' || hash === '#inativos') {
+        if (hash === '#funcionarios' || hash === '#inativos' || hash === '#afastados') {
             filterAndRenderLists();
         }
     
@@ -375,7 +380,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function filterAndRenderLists() {
-        const listMap = { 'ativos': 'funcionarios-section', 'inativos': 'inativos-section' };
+        const listMap = { 
+            'ativos': 'funcionarios-section', 
+            'afastados': 'afastados-section', 
+            'inativos': 'inativos-section' 
+        };
     
         for (const [type, sectionId] of Object.entries(listMap)) {
             const section = document.querySelector(`#${sectionId}`);
@@ -398,7 +407,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 cidade: container.querySelector('.city-filter')?.value.toLowerCase(),
                 estado: container.querySelector('.state-filter')?.value,
                 vencimento: container.querySelector('.expiry-filter')?.value,
-                recontratacao: container.querySelector('.rehire-filter')?.value
+                recontratacao: container.querySelector('.rehire-filter')?.value,
+                transporte: container.querySelector('.transport-filter')?.value
             };
     
             let filteredList = sourceList;
@@ -420,6 +430,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (filters.estado) {
                 filteredList = filteredList.filter(func => func.estado === filters.estado);
+            }
+            if (filters.transporte) {
+                filteredList = filteredList.filter(func => func.opcao_transporte === filters.transporte);
             }
             if (filters.mes_aniversario) {
                 filteredList = filteredList.filter(func => func.data_nascimento && (new Date(func.data_nascimento + 'T12:00:00').getMonth() + 1) == filters.mes_aniversario);
@@ -506,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.add(empresaClass);
         }
         
-        const dataLabel = func.status === 'ativo' ? 'Admissão' : 'Demissão';
+        const dataLabel = func.status === 'ativo' ? 'Admissão' : (func.status === 'afastado' ? 'Afastamento' : 'Demissão');
         const dataValue = func.status === 'ativo' ? func.data_admissao : func.data_demissao;
         const formattedDate = dataValue && dataValue !== '0000-00-00' ? new Date(dataValue + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado';
         
@@ -544,9 +557,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await fetchAPI('action=get_notifications');
         if (!notificationCount) return;
 
+        // Resetar estado da UI (checkboxes e botões) antes de renderizar
+        resetNotificationUI();
+
         let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
         let statusChanged = false;
 
+        // Limpeza automática da lixeira (itens com mais de 30 dias na lixeira)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         for (const id in notificationStatus) {
@@ -562,13 +579,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 ...result.data.vencimentos,
                 ...result.data.datas_importantes
             ];
+            
+            // Filtro e Preparação das Notificações Válidas
+            const validNotificationIds = new Set();
+
             apiNotifications.forEach(item => {
+                // FILTRO DE CONTRATO DE EXPERIÊNCIA (REGRA DOS 10 DIAS)
+                if (item.tipo.includes('Contrato') || item.tipo.includes('contrato')) {
+                     const dataEvento = new Date(item.data_evento + 'T12:00:00');
+                     const hoje = new Date();
+                     hoje.setHours(0,0,0,0);
+                     const diffTime = dataEvento - hoje;
+                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                     
+                     // Se faltar mais de 10 dias, ignora este item (não adiciona ao localStorage)
+                     if (diffDays > 10) {
+                         return;
+                     }
+                }
+
                 const notificationId = `${item.tipo}-${item.id}-${item.data_evento}`;
+                validNotificationIds.add(notificationId); // Marca como válida
+
                 if (!notificationStatus[notificationId]) {
                     notificationStatus[notificationId] = { status: 'pending', item_data: item, trashed_at: null };
                     statusChanged = true;
                 }
             });
+
+            // --- SINCRONIZAÇÃO AUTOMÁTICA (LIMPEZA) ---
+            // Se uma notificação estava no localStorage, mas NÃO veio da API agora 
+            // (significa que o funcionário foi afastado/inativado ou documento renovado), removemos.
+            for (const id in notificationStatus) {
+                // Se o ID não está na lista de válidos da API (e não é um item deletado logicamente)
+                if (!validNotificationIds.has(id) && notificationStatus[id].status !== 'deleted') {
+                    // Remove do objeto local
+                    delete notificationStatus[id];
+                    statusChanged = true;
+                }
+            }
         }
 
         if (statusChanged) {
@@ -595,10 +644,31 @@ document.addEventListener('DOMContentLoaded', function() {
             lidasWrapper.innerHTML = '<p class="no-notifications">Nenhuma notificação lida.</p>';
             lixeiraWrapper.innerHTML = '<p class="no-notifications">Lixeira vazia.</p>';
         } else {
+            
+            // --- ORDENAÇÃO: 1º Aniversário, 2º Vencidos, 3º A Vencer ---
             notificationsToRender.sort((a,b) => {
                 if (!a.item_data || !b.item_data) return 0;
-                return new Date(a.item_data.data_evento) - new Date(b.item_data.data_evento)
+
+                const getPriority = (item) => {
+                    const hoje = new Date(); hoje.setHours(0,0,0,0);
+                    const dataEvento = new Date(item.data_evento + 'T12:00:00');
+                    
+                    if (item.tipo === 'Aniversário') return 1; // Prioridade Máxima
+                    if (dataEvento <= hoje) return 2;          // Vencidos (ou vence hoje)
+                    return 3;                                  // Vencendo futuramente
+                };
+
+                const pA = getPriority(a.item_data);
+                const pB = getPriority(b.item_data);
+
+                if (pA !== pB) {
+                    return pA - pB;
+                }
+                
+                // Se prioridade for igual, ordena por data (mais antigo primeiro)
+                return new Date(a.item_data.data_evento) - new Date(b.item_data.data_evento);
             });
+            // ---------------------------
 
             notificationsToRender.forEach(statusInfo => {
                 if (!statusInfo || !statusInfo.item_data) return;
@@ -609,18 +679,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 let statusClass = '', metaText = '', icon = '';
 
                 if (item.tipo === 'Aniversário') {
-                    const dataNascimento = new Date(item.data_evento + 'T12:00:00');
-                    let aniverEsteAno = new Date(hoje.getFullYear(), dataNascimento.getMonth(), dataNascimento.getDate());
-                    let dataAlvo = (aniverEsteAno < hoje) ? new Date(hoje.getFullYear() + 1, dataNascimento.getMonth(), dataNascimento.getDate()) : aniverEsteAno;
-                    const aniverDiffDays = Math.ceil((dataAlvo - hoje) / (1000 * 60 * 60 * 24));
+                    const dataOriginal = new Date(item.data_evento + 'T12:00:00');
+                    let aniverEsteAno = new Date(hoje.getFullYear(), dataOriginal.getMonth(), dataOriginal.getDate());
+                    
+                    // Se já passou este ano e não é hoje, calcula para o próximo
+                    let targetDate = aniverEsteAno;
+                    if (targetDate < hoje) {
+                        targetDate = new Date(hoje.getFullYear() + 1, dataOriginal.getMonth(), dataOriginal.getDate());
+                    }
+
+                    const diffDays = Math.ceil((targetDate - hoje) / (1000 * 60 * 60 * 24));
+                    
                     statusClass = 'aniversario'; icon = 'fa-birthday-cake';
-                    metaText = aniverDiffDays === 0 ? `Aniversário Hoje!` : `Aniversário em ${aniverDiffDays} dias`;
+                    if (diffDays === 0) metaText = `Aniversário Hoje!`;
+                    else if (diffDays === 1) metaText = `Aniversário Amanhã`;
+                    else metaText = `Aniversário em ${diffDays} dias`;
+
                 } else {
                     const dataEvento = new Date(item.data_evento + 'T12:00:00');
                     const diffDays = Math.ceil((dataEvento - hoje) / (1000 * 60 * 60 * 24));
-                    if (diffDays < 0) { statusClass = 'vencido'; metaText = `Vencido há ${Math.abs(diffDays)} dias`; }
-                    else if (diffDays === 0) { statusClass = 'vencido'; metaText = `Vence Hoje!`; }
-                    else { statusClass = 'vencendo'; metaText = `Vence em ${diffDays} dias`; }
+                    
+                    if (diffDays < 0) { 
+                        statusClass = 'vencido'; 
+                        metaText = `Vencido há ${Math.abs(diffDays)} dias`; 
+                    } else if (diffDays === 0) { 
+                        statusClass = 'vencido'; 
+                        metaText = `Vence Hoje!`; 
+                    } else { 
+                        statusClass = 'vencendo'; 
+                        metaText = `Vence em ${diffDays} dias`; 
+                    }
                     icon = 'fa-exclamation-triangle';
                 }
 
@@ -650,6 +738,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         showOnloadNotificationPopup(unreadCount);
+    }
+
+    function resetNotificationUI() {
+        const lists = ['pendentes', 'lidas', 'lixeira'];
+        lists.forEach(type => {
+            const container = document.getElementById(`${type}-list`);
+            if(container) {
+                const selectAll = container.querySelector('.notification-select-all');
+                if(selectAll) selectAll.checked = false;
+                const buttons = container.querySelectorAll('.action-btn-lote');
+                buttons.forEach(btn => btn.disabled = true);
+            }
+        });
     }
 
     function showOnloadNotificationPopup(unreadCount) {
@@ -759,10 +860,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
         let hasData = false;
+        
         const validades = {
-            'CNH': func.validade_cnh, 'Exame Médico': func.validade_exame_medico, 'Treinamento': func.validade_treinamento,
-            'CCT': func.validade_cct, 'Contrato de Experiência': func.validade_contrato_experiencia
+            'CNH': func.validade_cnh,
+            'Exame Clínico': func.validade_exame_clinico,
+            'Audiometria': func.validade_audiometria,
+            'Eletrocardiograma': func.validade_eletrocardiograma,
+            'Eletroencefalograma': func.validade_eletroencefalograma,
+            'Glicemia': func.validade_glicemia,
+            'Acuidade Visual': func.validade_acuidade_visual,
+            'Treinamento': func.validade_treinamento,
+            'Data Base CCT': func.validade_cct, 
+            'Contrato de Experiência': func.validade_contrato_experiencia
         };
+
         for (const [key, value] of Object.entries(validades)) {
             if (value && value !== '0000-00-00') {
                 hasData = true;
@@ -827,6 +938,21 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
         
+        const transporte = func.opcao_transporte || 'Não Optante';
+        let transporteDetalhesHtml = '';
+
+        if (transporte === 'Vale Transporte') {
+            transporteDetalhesHtml = `
+                <div style="margin-top: 5px; font-size: 0.9em; color: #555; padding-left: 10px; border-left: 2px solid #ccc;">
+                    <p style="margin: 2px 0;"><strong>Meio:</strong> ${func.meio_transporte || '-'}</p>
+                    <p style="margin: 2px 0;"><strong>Qtd:</strong> ${func.qtd_transporte || '-'}</p>
+                    <p style="margin: 2px 0;"><strong>Valor:</strong> ${func.valor_transporte || '-'}</p>
+                </div>
+            `;
+        }
+
+        const transporteHtml = `<div class="grid-full-width"><strong>Opção de Transporte</strong> ${transporte} ${transporteDetalhesHtml}</div>`;
+
         const enderecoCompleto = `${func.rua || ''}, ${func.numero || 'S/N'}${func.complemento ? ' - ' + func.complemento : ''}`;
 
         tabPessoal.innerHTML = `
@@ -847,6 +973,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${func.bairro || ''} - ${func.cidade || ''}/${func.estado || ''} <br>
                     CEP: ${func.cep || 'Não informado'}
                 </div>
+                ${transporteHtml}
                 <div><strong>Telefone Principal</strong> ${func.telefone_1 || 'Não informado'}</div>
                 <div><strong>Telefone 2</strong> ${func.telefone_2 || 'Não informado'}</div>
                 <div><strong>Telefone 3</strong> ${func.telefone_3 || 'Não informado'}</div>
@@ -862,8 +989,17 @@ document.addEventListener('DOMContentLoaded', function() {
         navigateToStep(1);
         document.getElementById('form-modal-title').textContent = id ? 'Editar Funcionário' : 'Adicionar Funcionário';
         document.getElementById('employee-id').value = id || '';
-        document.getElementById('employee-status').value = status;
-        document.getElementById('data_movimentacao_label').textContent = status === 'ativo' ? 'Data de Admissão' : 'Data de Demissão';
+        
+        // Define o status no select
+        const statusSelect = document.getElementById('status');
+        if (statusSelect) {
+            statusSelect.value = status; 
+        }
+        
+        const labelData = document.getElementById('data_movimentacao_label');
+        if (status === 'ativo') labelData.textContent = 'Data de Admissão';
+        else if (status === 'afastado') labelData.textContent = 'Data de Admissão'; 
+        else labelData.textContent = 'Data de Demissão';
 
         document.getElementById('children-list').innerHTML = '';
         document.getElementById('tem_filhos').value = 'nao';
@@ -873,21 +1009,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('conjuge_nome').value = '';
         document.getElementById('conjuge_data_nascimento').value = '';
 
+        // Esconde detalhes de transporte inicialmente
+        const vtDetails = document.getElementById('vt-details');
+        if(vtDetails) vtDetails.classList.add('hidden');
+
         if (id) {
             const result = await fetchAPI(`action=get_funcionario&id=${id}`);
             if (result && result.data) {
                 const func = result.data;
                 const formFields = [
-                    'nome', 'funcao', 'empresa', 'local', 'data_movimentacao', 'validade_cnh', 'validade_exame_medico', 
-                    'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia', 
+                    'nome', 'funcao', 'empresa', 'local', 'data_movimentacao', 
+                    'validade_cnh', 'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia',
+                    'validade_exame_clinico', 'validade_audiometria', 'validade_eletrocardiograma', 
+                    'validade_eletroencefalograma', 'validade_glicemia', 'validade_acuidade_visual',
                     'data_nascimento', 'rg', 'cpf', 'estado_civil', 'cnh_numero', 'telefone_1', 'telefone_2', 'telefone_3',
-                    'email_pessoal', 'genero', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado'
+                    'email_pessoal', 'genero', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
+                    'opcao_transporte', 'meio_transporte', 'qtd_transporte', 'valor_transporte',
+                    'status'
                 ];
                 formFields.forEach(field => {
                     const el = document.getElementById(field);
                     if (el) {
                         if (field === 'data_movimentacao') {
-                            el.value = status === 'ativo' ? func.data_admissao : func.data_demissao;
+                            el.value = (func.status === 'ativo' || func.status === 'afastado') ? func.data_admissao : func.data_demissao;
                         } else {
                             el.value = func[field] || '';
                         }
@@ -916,6 +1060,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+        
+        // Força a atualização visual dos detalhes de transporte
+        const transportSelectModal = document.getElementById('opcao_transporte');
+        if(transportSelectModal) {
+            transportSelectModal.dispatchEvent(new Event('change'));
+        }
+
         formModal.classList.remove('hidden');
     }
 
@@ -1025,12 +1176,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // LÓGICA DO DASHBOARD
     // =================================================================================
     function updateDashboardSummary() {
-        if(document.getElementById('total-ativos')) {
-            document.getElementById('total-ativos').textContent = masterEmployeeList.ativos.length;
-        }
-        if(document.getElementById('total-inativos')) {
-            document.getElementById('total-inativos').textContent = masterEmployeeList.inativos.length;
-        }
+        if(document.getElementById('total-ativos')) document.getElementById('total-ativos').textContent = masterEmployeeList.ativos.length;
+        if(document.getElementById('total-afastados')) document.getElementById('total-afastados').textContent = masterEmployeeList.afastados.length;
+        if(document.getElementById('total-inativos')) document.getElementById('total-inativos').textContent = masterEmployeeList.inativos.length;
     }
     
     function initializeDashboard() {
@@ -1071,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const unitTotalCountEl = document.getElementById('unit-total-count');
         if (unitTotalCountEl) {
-            let listToCount = masterEmployeeList.ativos;
+            let listToCount = [...masterEmployeeList.ativos, ...masterEmployeeList.afastados];
             if (empresa) {
                 listToCount = listToCount.filter(f => f.empresa === empresa);
             }
@@ -1084,6 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputs = {
             presentes: document.getElementById('input-presentes'),
             falta_injustificada: document.getElementById('input-falta_injustificada'),
+            afastados: document.getElementById('input-afastados'),
             folga: document.getElementById('input-folga'),
             ferias: document.getElementById('input-ferias'),
             atestado: document.getElementById('input-atestado'),
@@ -1106,7 +1255,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const inputs = {
             presentes: {el: document.getElementById('input-presentes'), label: 'Presentes'},
-            falta_injustificada: {el: document.getElementById('input-falta_injustificada'), label: 'Faltas (Injus.)'},
+            falta_injustificada: {el: document.getElementById('input-falta_injustificada'), label: 'Faltas'},
+            afastados: {el: document.getElementById('input-afastados'), label: 'Afastados'},
             folga: {el: document.getElementById('input-folga'), label: 'Folga'},
             ferias: {el: document.getElementById('input-ferias'), label: 'Férias'},
             atestado: {el: document.getElementById('input-atestado'), label: 'Atestado'},
@@ -1134,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: labels,
                 datasets: [{
                     data: dataValues,
-                    backgroundColor: ['#28a745', '#dc3545', '#17a2b8', '#fd7e14', '#ffc107'],
+                    backgroundColor: ['#28a745', '#dc3545', '#6f42c1', '#17a2b8', '#fd7e14', '#ffc107'],
                     borderColor: body.classList.contains('dark-mode') ? '#1e1e3f' : '#fff', 
                     borderWidth: 4, 
                     hoverOffset: 4
@@ -1168,6 +1318,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('unidade', document.getElementById('unit-filter').value || 'Todos');
         formData.append('presentes', document.getElementById('input-presentes').value);
         formData.append('falta_injustificada', document.getElementById('input-falta_injustificada').value);
+        formData.append('afastados', document.getElementById('input-afastados').value);
         formData.append('folga', document.getElementById('input-folga').value);
         formData.append('ferias', document.getElementById('input-ferias').value);
         formData.append('atestado', document.getElementById('input-atestado').value);
@@ -1245,9 +1396,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // =================================================================================
-    // INICIALIZAÇÃO E EVENT LISTENERS DO PAINEL
+    // 5. INICIALIZAÇÃO PRINCIPAL (Decide o que fazer com base na página)
     // =================================================================================
-    
+
     function initializeApp() {
         fetchAPI(`action=get_all_funcionarios`).then(result => {
             if (result && result.data) {
@@ -1262,6 +1413,129 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function setupAppEventListeners() {
         setupInputMasks();
+
+        // --- CORREÇÃO: LÓGICA DO TOGGLE DE NOTIFICAÇÕES ---
+        if (notificationToggle) {
+            notificationToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notificationPanel.classList.toggle('hidden');
+            });
+        }
+
+        // Fecha o painel se clicar fora dele
+        document.addEventListener('click', (e) => {
+            if (notificationPanel && !notificationPanel.classList.contains('hidden')) {
+                if (!notificationPanel.contains(e.target) && !notificationToggle.contains(e.target)) {
+                    notificationPanel.classList.add('hidden');
+                }
+            }
+        });
+        
+        // Lógica para as abas dentro do painel de notificação
+        const notifTabs = document.querySelectorAll('.notification-tabs .tab-btn');
+        notifTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                notifTabs.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.notification-list-container').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const targetId = tab.dataset.tab + '-list';
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+
+        // --- LÓGICA DE SELEÇÃO E AÇÕES DAS NOTIFICAÇÕES (CORRIGIDA) ---
+        const setupNotificationActions = () => {
+            const lists = ['pendentes', 'lidas', 'lixeira'];
+            
+            lists.forEach(type => {
+                const container = document.getElementById(`${type}-list`);
+                if (!container) return;
+                
+                const selectAll = container.querySelector('.notification-select-all');
+                
+                // Toggle Select All
+                if (selectAll) {
+                    selectAll.addEventListener('change', (e) => {
+                        const checkboxes = container.querySelectorAll('.notification-item-checkbox');
+                        checkboxes.forEach(cb => cb.checked = e.target.checked);
+                        updateActionButtonsState(container);
+                    });
+                }
+                
+                // Event Delegation para checkboxes dinâmicos
+                container.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('notification-item-checkbox')) {
+                        updateActionButtonsState(container);
+                        if(selectAll) {
+                            const total = container.querySelectorAll('.notification-item-checkbox').length;
+                            const checked = container.querySelectorAll('.notification-item-checkbox:checked').length;
+                            selectAll.checked = total > 0 && total === checked;
+                        }
+                    }
+                });
+            });
+
+            function updateActionButtonsState(container) {
+                const checkedCount = container.querySelectorAll('.notification-item-checkbox:checked').length;
+                const buttons = container.querySelectorAll('.action-btn-lote');
+                buttons.forEach(btn => btn.disabled = checkedCount === 0);
+            }
+
+            // Handler Genérico para Ações
+            const handleAction = (containerId, newStatus, isPermanentDelete = false) => {
+                const container = document.getElementById(containerId);
+                const selected = container.querySelectorAll('.notification-item-checkbox:checked');
+                if (selected.length === 0) return;
+
+                const executeAction = () => {
+                    let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
+                    
+                    selected.forEach(cb => {
+                        const id = cb.dataset.notificationId;
+                        if (notificationStatus[id]) {
+                            notificationStatus[id].status = newStatus;
+                            if (newStatus === 'trashed') {
+                                notificationStatus[id].trashed_at = new Date().toISOString();
+                            } else if (newStatus === 'read') {
+                                notificationStatus[id].trashed_at = null; // Recuperar
+                            }
+                        }
+                    });
+
+                    localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
+                    fetchAndRenderNotifications();
+                    showToast(isPermanentDelete ? 'Notificações excluídas permanentemente.' : 'Status atualizado com sucesso.');
+                };
+
+                if (isPermanentDelete) {
+                    showConfirmationModal({
+                        title: 'Excluir Permanentemente',
+                        message: 'Esta ação não pode ser desfeita. As notificações selecionadas não aparecerão novamente.',
+                        keyword: 'CONFIRMAR',
+                        onConfirm: executeAction
+                    });
+                } else {
+                    executeAction();
+                }
+            };
+
+            // Vínculo dos botões
+            const btnRead = document.getElementById('mark-as-read-btn');
+            if(btnRead) btnRead.addEventListener('click', () => handleAction('pendentes-list', 'read'));
+
+            const btnTrash = document.getElementById('move-to-trash-btn');
+            if(btnTrash) btnTrash.addEventListener('click', () => handleAction('lidas-list', 'trashed'));
+            
+            const btnRecover = document.getElementById('recover-from-trash-btn');
+            if(btnRecover) btnRecover.addEventListener('click', () => handleAction('lixeira-list', 'read'));
+
+            const btnDelete = document.getElementById('delete-permanently-btn');
+            if(btnDelete) btnDelete.addEventListener('click', () => handleAction('lixeira-list', 'deleted', true));
+        };
+        
+        setupNotificationActions();
+        // --------------------------------------------------
         
         populateSelectWithOptions('.company-filter, #empresa, #company-filter-dashboard', empresas, 'Todas as Empresas');
         populateSelectWithOptions('.location-filter, #local, #unit-filter', unidades, 'Todas as Unidades');
@@ -1278,7 +1552,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('popstate', handleRouteChange);
 
         document.querySelectorAll('.filtros-container').forEach(container => {
-            const inputs = container.querySelectorAll('.search-input, .company-filter, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter');
+            const inputs = container.querySelectorAll('.search-input, .company-filter, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter, .transport-filter');
             let timer;
             inputs.forEach(input => {
                 const eventType = ['SELECT', 'INPUT'].includes(input.tagName) ? 'change' : 'input';
@@ -1333,6 +1607,60 @@ document.addEventListener('DOMContentLoaded', function() {
         const cepInput = document.getElementById('cep');
         if (cepInput) {
             cepInput.addEventListener('blur', (e) => fetchAddressByCep(e.target.value));
+        }
+
+        // Lógica para mostrar/ocultar campos de Vale Transporte no Modal
+        const transportSelect = document.getElementById('opcao_transporte');
+        const vtDetails = document.getElementById('vt-details');
+
+        if (transportSelect && vtDetails) {
+            transportSelect.addEventListener('change', () => {
+                if (transportSelect.value === 'Vale Transporte') {
+                    vtDetails.classList.remove('hidden');
+                } else {
+                    vtDetails.classList.add('hidden');
+                    // Limpar campos se mudar a opção
+                    document.getElementById('meio_transporte').value = '';
+                    document.getElementById('qtd_transporte').value = '';
+                    document.getElementById('valor_transporte').value = '';
+                }
+            });
+        }
+
+        const temFilhosSelect = document.getElementById('tem_filhos');
+        const childrenContainer = document.getElementById('children-dynamic-container');
+        const addChildBtn = document.getElementById('add-child-btn');
+
+        if (temFilhosSelect && childrenContainer) {
+            temFilhosSelect.addEventListener('change', () => {
+                if (temFilhosSelect.value === 'sim') {
+                    childrenContainer.classList.remove('hidden');
+                    if (document.getElementById('children-list').children.length === 0) {
+                        createChildEntry();
+                    }
+                } else {
+                    childrenContainer.classList.add('hidden');
+                    document.getElementById('children-list').innerHTML = '';
+                }
+            });
+        }
+        if (addChildBtn) {
+            addChildBtn.addEventListener('click', createChildEntry);
+        }
+
+        const estadoCivilSelect = document.getElementById('estado_civil');
+        const spouseContainer = document.getElementById('spouse-dynamic-container');
+
+        if (estadoCivilSelect && spouseContainer) {
+            estadoCivilSelect.addEventListener('change', () => {
+                if (estadoCivilSelect.value === 'Casado(a)') {
+                    spouseContainer.classList.remove('hidden');
+                } else {
+                    spouseContainer.classList.add('hidden');
+                    document.getElementById('conjuge_nome').value = '';
+                    document.getElementById('conjuge_data_nascimento').value = '';
+                }
+            });
         }
 
         const formWizard = formModal ? formModal.querySelector('.form-wizard') : null;
@@ -1425,7 +1753,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const card = e.target.closest('.funcionario-card');
                     if (!card) return;
                     const funcId = card.dataset.id;
-                    const func = [...masterEmployeeList.ativos, ...masterEmployeeList.inativos].find(f => f.id == funcId);
+                    const func = [...masterEmployeeList.ativos, ...masterEmployeeList.afastados, ...masterEmployeeList.inativos].find(f => f.id == funcId);
                     if (!func) return;
 
                     switch (actionTarget.dataset.action) {
@@ -1485,7 +1813,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // *** CORREÇÃO DO BOTÃO VOLTAR ***
                 if (target.closest('#back-to-folders-btn')) {
                     if (breadcrumbHistory.length > 1) {
                         breadcrumbHistory.pop();
@@ -1529,7 +1856,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // *** NOVA LÓGICA PARA EDITAR E EXCLUIR ***
                 const editBtn = target.closest('.action-btn.edit');
                 if(editBtn) {
                     const item = editBtn.closest('.explorer-item');
@@ -1614,7 +1940,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', e => {
-                if (e.target === modal || e.target.closest('.modal-close-btn')) {
+                // Verifica se clicou no botão de fechar
+                if (e.target.closest('.modal-close-btn')) {
+                    modal.classList.add('hidden');
+                    return;
+                }
+                
+                // Se clicou no overlay (fora do conteúdo)
+                if (e.target === modal) {
+                    // Se for o modal de formulário, IGNORE o clique (não fecha)
+                    if (modal.id === 'form-modal') {
+                        return;
+                    }
+                    // Para outros modais, fecha normalmente
                     modal.classList.add('hidden');
                 }
             });
@@ -1638,200 +1976,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         }
-
-        const temFilhosSelect = document.getElementById('tem_filhos');
-        const childrenContainer = document.getElementById('children-dynamic-container');
-        const addChildBtn = document.getElementById('add-child-btn');
-        if (temFilhosSelect && childrenContainer) {
-            temFilhosSelect.addEventListener('change', () => {
-                if (temFilhosSelect.value === 'sim') {
-                    childrenContainer.classList.remove('hidden');
-                    if (document.getElementById('children-list').children.length === 0) {
-                        createChildEntry();
-                    }
-                } else {
-                    childrenContainer.classList.add('hidden');
-                    document.getElementById('children-list').innerHTML = '';
-                }
-            });
-        }
-        if (addChildBtn) {
-            addChildBtn.addEventListener('click', createChildEntry);
-        }
-
-        const estadoCivilSelect = document.getElementById('estado_civil');
-        const spouseContainer = document.getElementById('spouse-dynamic-container');
-        if (estadoCivilSelect && spouseContainer) {
-            estadoCivilSelect.addEventListener('change', () => {
-                if (estadoCivilSelect.value === 'Casado(a)') {
-                    spouseContainer.classList.remove('hidden');
-                } else {
-                    spouseContainer.classList.add('hidden');
-                    document.getElementById('conjuge_nome').value = '';
-                    document.getElementById('conjuge_data_nascimento').value = '';
-                }
-            });
-        }
-
-        const terminateForm = document.getElementById('form-encerrar-contrato');
-        if (terminateForm) {
-            terminateForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = terminateForm.dataset.employeeId;
-                const formData = new FormData(terminateForm);
-                formData.append('action', 'terminate_funcionario');
-                formData.append('id', id);
-
-                const result = await postAPI(formData);
-                if (result && result.success) {
-                    showToast('Contrato encerrado com sucesso.');
-                    document.getElementById('modal-encerrar-contrato').classList.add('hidden');
-                    removeNotificationsForEmployee(id);
-                    await refreshDataAndRender();
-                }
-            });
-        }
-        const terminateModal = document.getElementById('modal-encerrar-contrato');
-        if(terminateModal) {
-            terminateModal.querySelectorAll('.cancel-btn, .modal-close-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    terminateModal.classList.add('hidden');
-                });
-            });
-        }
-
-        if (notificationPanel) {
-            const tabs = notificationPanel.querySelector('.notification-tabs');
-            const tabContents = notificationPanel.querySelectorAll('.notification-list-container');
-            const markAsReadBtn = document.getElementById('mark-as-read-btn');
-            const moveToTrashBtn = document.getElementById('move-to-trash-btn');
-            const recoverBtn = document.getElementById('recover-from-trash-btn');
-            const deletePermBtn = document.getElementById('delete-permanently-btn');
-            const selectAllPendentes = document.getElementById('select-all-pendentes');
-            const selectAllLidas = document.getElementById('select-all-lidas');
-            const selectAllLixeira = document.getElementById('select-all-lixeira');
-            const pendentesContainer = document.getElementById('pendentes-list');
-            const lidasContainer = document.getElementById('lidas-list');
-            const lixeiraContainer = document.getElementById('lixeira-list');
-
-            tabs.addEventListener('click', (e) => {
-                if (e.target.classList.contains('tab-btn')) {
-                    tabs.querySelector('.active').classList.remove('active');
-                    e.target.classList.add('active');
-                    const targetTab = e.target.dataset.tab;
-                    tabContents.forEach(content => content.classList.toggle('active', content.id === `${targetTab}-list`));
-                }
-            });
-
-            const handleSelectionChange = (container, actionBtn, actionBtn2 = null) => {
-                const checkboxes = container.querySelectorAll('.notification-item-checkbox:checked');
-                actionBtn.disabled = checkboxes.length === 0;
-                if (actionBtn2) actionBtn2.disabled = checkboxes.length === 0;
-            };
-            
-            pendentesContainer.addEventListener('change', () => handleSelectionChange(pendentesContainer, markAsReadBtn));
-            selectAllPendentes.addEventListener('change', (e) => {
-                pendentesContainer.querySelectorAll('.notification-item-checkbox').forEach(cb => cb.checked = e.target.checked);
-                handleSelectionChange(pendentesContainer, markAsReadBtn);
-            });
-            markAsReadBtn.addEventListener('click', () => {
-                const selectedIds = Array.from(pendentesContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
-                let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
-                selectedIds.forEach(id => {
-                    if (notificationStatus[id]) {
-                        notificationStatus[id].status = 'read';
-                    }
-                });
-                localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
-                fetchAndRenderNotifications();
-                showToast(`${selectedIds.length} notificaç${selectedIds.length > 1 ? 'ões movidas' : 'ão movida'} para Lidas.`);
-                markAsReadBtn.disabled = true;
-                selectAllPendentes.checked = false;
-            });
-
-            lidasContainer.addEventListener('change', () => handleSelectionChange(lidasContainer, moveToTrashBtn));
-            selectAllLidas.addEventListener('change', (e) => {
-                lidasContainer.querySelectorAll('.notification-item-checkbox').forEach(cb => cb.checked = e.target.checked);
-                handleSelectionChange(lidasContainer, moveToTrashBtn);
-            });
-            moveToTrashBtn.addEventListener('click', () => {
-                const selectedIds = Array.from(lidasContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
-                let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
-                selectedIds.forEach(id => {
-                    if (notificationStatus[id]) { 
-                        notificationStatus[id].status = 'trashed';
-                        notificationStatus[id].trashed_at = new Date().toISOString();
-                    }
-                });
-                localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
-                fetchAndRenderNotifications();
-                showToast(`${selectedIds.length} notificaç${selectedIds.length > 1 ? 'ões movidas' : 'ão movida'} para a Lixeira.`);
-                moveToTrashBtn.disabled = true;
-                selectAllLidas.checked = false;
-            });
-
-            lixeiraContainer.addEventListener('change', () => handleSelectionChange(lixeiraContainer, recoverBtn, deletePermBtn));
-            selectAllLixeira.addEventListener('change', (e) => {
-                lixeiraContainer.querySelectorAll('.notification-item-checkbox').forEach(cb => cb.checked = e.target.checked);
-                handleSelectionChange(lixeiraContainer, recoverBtn, deletePermBtn);
-            });
-            recoverBtn.addEventListener('click', () => {
-                const selectedIds = Array.from(lixeiraContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
-                let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
-                selectedIds.forEach(id => {
-                    if (notificationStatus[id]) {
-                        notificationStatus[id].status = 'read';
-                        notificationStatus[id].trashed_at = null;
-                    }
-                });
-                localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
-                fetchAndRenderNotifications();
-                showToast(`${selectedIds.length} notificaç${selectedIds.length > 1 ? 'ões recuperadas' : 'ão recuperada'}.`);
-                recoverBtn.disabled = true;
-                deletePermBtn.disabled = true;
-                selectAllLixeira.checked = false;
-            });
-            deletePermBtn.addEventListener('click', () => {
-                const selectedIds = Array.from(lixeiraContainer.querySelectorAll('.notification-item-checkbox:checked')).map(cb => cb.dataset.notificationId);
-                if (selectedIds.length === 0) return;
-                showConfirmationModal({
-                    title: 'Excluir Permanentemente',
-                    message: 'Esta ação não pode ser desfeita. As notificações selecionadas não aparecerão novamente.',
-                    keyword: 'CONFIRMAR',
-                    onConfirm: () => {
-                        let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
-                        selectedIds.forEach(id => {
-                            if (notificationStatus[id]) {
-                                notificationStatus[id].status = 'deleted';
-                            }
-                        });
-                        localStorage.setItem('notificationStatus', JSON.stringify(notificationStatus));
-                        fetchAndRenderNotifications();
-                        showToast('Notificações excluídas permanentemente.');
-                        recoverBtn.disabled = true;
-                        deletePermBtn.disabled = true;
-                        selectAllLixeira.checked = false;
-                    }
-                });
-            });
-        }
-
-        if (notificationToggle) {
-            notificationToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                notificationPanel.classList.toggle('hidden');
-            });
-            document.addEventListener('click', (e) => {
-                if (notificationPanel && !notificationPanel.classList.contains('hidden') && !notificationPanel.contains(e.target) && !notificationToggle.contains(e.target)) {
-                    notificationPanel.classList.add('hidden');
-                }
-            });
-        }
     }
-    
-    // =================================================================================
-    // 5. INICIALIZAÇÃO PRINCIPAL (Decide o que fazer com base na página)
-    // =================================================================================
 
     if (loginForm) {
         // --- Lógica para a PÁGINA DE LOGIN (login.php) ---
