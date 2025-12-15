@@ -512,7 +512,7 @@
             </div>
         </div>
 
-        <footer> <div class="container"><p>&copy; 2025 Painel de Gestão Tranquility Parking Lot</p></div> </footer>
+        <footer> <div class="container"><p>&copy; 2026 Painel de Gestão Grupo Tranquility</p></div> </footer>
     </div>
     <div id="toast"></div>
 
