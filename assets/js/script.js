@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final: Proteção contra fechamento acidental do formulário
+// assets/js/script.js - Versão Final Atualizada
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -36,13 +36,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const empresas = ["Tranquility", "GSM", "Protector", "GS1"];
     const unidades = [
-        "Prevent Sênior - Hospital Madri", "IGESP - Hospital Praia Grande", "IGESP - Hospital Santo Amaro", "IGESP - Pronto Atendimento Santos",
+        "Administrativo", "GS1","Prevent Sênior - Hospital Madri", "IGESP - Hospital Praia Grande", "IGESP - Hospital Santo Amaro", "IGESP - Pronto Atendimento Santos",
         "IGESP - Pronto Atendimento Santo André", "IGESP - Pronto Atendimento Congonhas", "IGESP - Pronto Atendimento Anália Franco",
         "Grupo Santa Marcelina Itaquera - Sede", "Grupo Santa Marcelina Itaquera - AME", "Grupo Santa Marcelina Itaquera - Instituto",
         "Grupo Santa Marcelina Itaquera - Torre", "Grupo Santa Marcelina Itaquera - Faculdade Santa Marcelina",
         "Grupo Santa Marcelina Regionais - Hospital Cidade Tiradentes", "Grupo Santa Marcelina Regionais - Hospital Itaim",
         "Grupo Santa Marcelina Regionais - Hospital Itaquá", "Grupo Santa Marcelina Regionais - Hospital Neomater SBC",
-        "Hapvida", "Espaço HAOC", "São Carlos - Santa Casa", "São Carlos - CID", "São Carlos - Onovolab"
+        "Hapvida", "Espaço HAOC", "São Carlos - Santa Casa", "São Carlos - CID", "São Carlos - Onovolab" , "Operador (a) Folguista"  , "Faxineiro (a) Rotativo"
     ];
 
     if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
@@ -870,7 +870,6 @@ document.addEventListener('DOMContentLoaded', function() {
             'Glicemia': func.validade_glicemia,
             'Acuidade Visual': func.validade_acuidade_visual,
             'Treinamento': func.validade_treinamento,
-            'Data Base CCT': func.validade_cct, 
             'Contrato de Experiência': func.validade_contrato_experiencia
         };
 
@@ -949,15 +948,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p style="margin: 2px 0;"><strong>Valor:</strong> ${func.valor_transporte || '-'}</p>
                 </div>
             `;
+        } else if (transporte === 'Auxílio Combustível') {
+             transporteDetalhesHtml = `
+                <div style="margin-top: 5px; font-size: 0.9em; color: #555; padding-left: 10px; border-left: 2px solid #ccc;">
+                    <p style="margin: 2px 0;"><strong>Valor:</strong> ${func.valor_transporte || '-'}</p>
+                </div>
+            `;
         }
 
         const transporteHtml = `<div class="grid-full-width"><strong>Opção de Transporte</strong> ${transporte} ${transporteDetalhesHtml}</div>`;
 
         const enderecoCompleto = `${func.rua || ''}, ${func.numero || 'S/N'}${func.complemento ? ' - ' + func.complemento : ''}`;
 
+        // Lógica para Data de Início na visualização
+        const dataInicioFormatada = func.data_inicio && func.data_inicio !== '0000-00-00' 
+            ? new Date(func.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') 
+            : 'Não informado';
+
         tabPessoal.innerHTML = `
             <div class="info-pessoal-grid">
                 ${historicoDemissaoHtml}
+                
+                <div><strong>Horário</strong> ${func.horario || 'Não informado'}</div>
+                <div><strong>Data Início</strong> ${dataInicioFormatada}</div>
+                <div><strong>PIS</strong> ${func.pis || 'Não informado'}</div>
+
                 <div><strong>Idade</strong> ${calculateAge(func.data_nascimento)}</div>
                 <div><strong>Gênero</strong> ${func.genero || 'Não informado'}</div>
                 <div><strong>Estado Civil</strong> ${func.estado_civil || 'Não informado'}</div>
@@ -1009,17 +1024,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('conjuge_nome').value = '';
         document.getElementById('conjuge_data_nascimento').value = '';
 
-        // Esconde detalhes de transporte inicialmente
-        const vtDetails = document.getElementById('vt-details');
-        if(vtDetails) vtDetails.classList.add('hidden');
+        // Esconde detalhes de transporte inicialmente (ATUALIZADO)
+        const transportContainer = document.getElementById('transport-options-container');
+        if(transportContainer) transportContainer.classList.add('hidden');
 
         if (id) {
             const result = await fetchAPI(`action=get_funcionario&id=${id}`);
             if (result && result.data) {
                 const func = result.data;
                 const formFields = [
-                    'nome', 'funcao', 'empresa', 'local', 'data_movimentacao', 
-                    'validade_cnh', 'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia',
+                    'nome', 'funcao', 'empresa', 'local', 'data_movimentacao',
+                    'horario', 'data_inicio', 'pis', // Novos campos adicionados na lista de carga
+                    'validade_cnh', 'validade_treinamento', 'validade_contrato_experiencia',
                     'validade_exame_clinico', 'validade_audiometria', 'validade_eletrocardiograma', 
                     'validade_eletroencefalograma', 'validade_glicemia', 'validade_acuidade_visual',
                     'data_nascimento', 'rg', 'cpf', 'estado_civil', 'cnh_numero', 'telefone_1', 'telefone_2', 'telefone_3',
@@ -1609,17 +1625,36 @@ document.addEventListener('DOMContentLoaded', function() {
             cepInput.addEventListener('blur', (e) => fetchAddressByCep(e.target.value));
         }
 
-        // Lógica para mostrar/ocultar campos de Vale Transporte no Modal
+        // Lógica para mostrar/ocultar campos de Transporte (Vale Transporte e Auxílio Combustível)
         const transportSelect = document.getElementById('opcao_transporte');
-        const vtDetails = document.getElementById('vt-details');
+        const transportContainer = document.getElementById('transport-options-container');
+        const vtFields = document.querySelectorAll('.vt-only');
+        const valorLabel = document.getElementById('label-valor-transporte');
 
-        if (transportSelect && vtDetails) {
+        if (transportSelect && transportContainer) {
             transportSelect.addEventListener('change', () => {
-                if (transportSelect.value === 'Vale Transporte') {
-                    vtDetails.classList.remove('hidden');
+                const selected = transportSelect.value;
+                
+                if (selected === 'Vale Transporte' || selected === 'Auxílio Combustível') {
+                    transportContainer.classList.remove('hidden');
+                    
+                    if (selected === 'Vale Transporte') {
+                        // Caso VT: Mostra Meio e Quantidade
+                        vtFields.forEach(el => el.classList.remove('hidden'));
+                        if(valorLabel) valorLabel.textContent = 'Valor Total Diário';
+                    } else {
+                        // Caso Auxílio Combustível: Esconde Meio e Quantidade
+                        vtFields.forEach(el => el.classList.add('hidden'));
+                        
+                        // Limpa os campos ocultos para não enviar dados errados
+                        document.getElementById('meio_transporte').value = '';
+                        document.getElementById('qtd_transporte').value = '';
+                        
+                        if(valorLabel) valorLabel.textContent = 'Valor do Auxílio';
+                    }
                 } else {
-                    vtDetails.classList.add('hidden');
-                    // Limpar campos se mudar a opção
+                    // Caso Não Optante
+                    transportContainer.classList.add('hidden');
                     document.getElementById('meio_transporte').value = '';
                     document.getElementById('qtd_transporte').value = '';
                     document.getElementById('valor_transporte').value = '';
@@ -1940,19 +1975,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', e => {
-                // Verifica se clicou no botão de fechar
+                // Verifica se clicou no botão de fechar (O "X")
                 if (e.target.closest('.modal-close-btn')) {
                     modal.classList.add('hidden');
                     return;
                 }
                 
-                // Se clicou no overlay (fora do conteúdo)
+                // Se clicou no overlay (fundo escuro fora do conteúdo)
                 if (e.target === modal) {
-                    // Se for o modal de formulário, IGNORE o clique (não fecha)
-                    if (modal.id === 'form-modal') {
-                        return;
+                    // ALTERAÇÃO AQUI:
+                    // Adicionamos "|| modal.id === 'employee-modal'"
+                    // Agora ele ignora o clique fora tanto no Formulário quanto nos Detalhes do Funcionário
+                    if (modal.id === 'form-modal' || modal.id === 'employee-modal') {
+                        return; // Não faz nada, mantendo a janela aberta
                     }
-                    // Para outros modais, fecha normalmente
+                    // Para outros modais (como confirmações simples), fecha normalmente
                     modal.classList.add('hidden');
                 }
             });
@@ -2048,4 +2085,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
