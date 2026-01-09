@@ -160,7 +160,6 @@
                                         <option value="validade_glicemia">Glicemia</option>
                                         <option value="validade_acuidade_visual">Acuidade Visual</option>
                                         <option value="validade_treinamento">Treinamento</option>
-                                        <option value="validade_cct">Data Base CCT</option>
                                         <option value="validade_contrato_experiencia">Contrato Exp.</option>
                                     </select>
                                 </div>
@@ -512,7 +511,7 @@
             </div>
         </div>
 
-        <footer> <div class="container"><p>&copy; 2026 Painel de Gestão Grupo Tranquility</p></div> </footer>
+        <footer> <div class="container"><p>&copy; Painel de Gestão Tranquility Parking Lot</p></div> </footer>
     </div>
     <div id="toast"></div>
 
@@ -604,6 +603,9 @@
                                 <div class="form-group"> <label for="funcao">Função</label> <input type="text" id="funcao" name="funcao" required> </div>
                                 <div class="form-group"> <label for="empresa">Empresa</label> <select id="empresa" name="empresa" required></select> </div>
                                 <div class="form-group"> <label for="local">Unidade</label> <select id="local" name="local" required></select> </div>
+                                
+                                <div class="form-group"> <label for="horario">Horário de Trabalho</label> <input type="text" id="horario" name="horario" placeholder="Ex: 08:00 às 18:00"> </div>
+                                
                                 <div class="form-group">
                                     <label for="status">Situação Atual</label>
                                     <select id="status" name="status" required>
@@ -612,9 +614,12 @@
                                         <option value="inativo" disabled hidden>Inativo</option>
                                     </select>
                                 </div>
-                                <div class="form-group"> <label for="data_movimentacao" id="data_movimentacao_label">Data</label> <input type="date" id="data_movimentacao" name="data_movimentacao" required> </div>
+                                <div class="form-group"> <label for="data_movimentacao" id="data_movimentacao_label">Data de Admissão/Demissão</label> <input type="date" id="data_movimentacao" name="data_movimentacao" required> </div>
+                                
+                                <div class="form-group"> <label for="data_inicio">Data de Início (Efetiva)</label> <input type="date" id="data_inicio" name="data_inicio"> </div>
                             </div>
                         </div>
+
                         <div class="form-step" data-step="2">
                             <div class="form-group-divider">Informações Pessoais</div>
                             <div class="form-grid">
@@ -638,6 +643,9 @@
 
                                 <div class="form-group"> <label for="rg">RG</label> <input type="text" id="rg" name="rg"> </div>
                                 <div class="form-group"> <label for="cpf">CPF</label> <input type="text" id="cpf" name="cpf"> </div>
+                                
+                                <div class="form-group"> <label for="pis">PIS</label> <input type="text" id="pis" name="pis"> </div>
+                                
                                 <div class="form-group"> <label for="cnh_numero">Número da CNH</label> <input type="text" id="cnh_numero" name="cnh_numero"> </div>
                                 
                                 <div class="form-group">
@@ -671,29 +679,30 @@
                                 <div class="form-group"> <label for="cidade">Cidade</label> <input type="text" id="cidade" name="cidade"> </div>
                                 <div class="form-group"> <label for="estado">Estado</label> <input type="text" id="estado" name="estado" maxlength="2"> </div>
                                 <div class="form-group grid-full-width">
-                                    <label for="opcao_transporte">Benefício de Transporte</label>
-                                    <select id="opcao_transporte" name="opcao_transporte">
-                                        <option value="Não Optante">Não Optante</option>
-                                        <option value="Vale Transporte">Vale Transporte</option>
-                                        <option value="Auxílio Combustível">Auxílio Combustível</option>
-                                    </select>
-                                </div>
-                                <div id="vt-details" class="grid-full-width hidden" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 15px;">
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label for="meio_transporte">Meio de Transporte</label>
-                                            <input type="text" id="meio_transporte" name="meio_transporte" placeholder="Ex: Metrô, Ônibus...">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="qtd_transporte">Quantidade Diária</label>
-                                            <input type="number" id="qtd_transporte" name="qtd_transporte" placeholder="Ex: 2">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="valor_transporte">Valor Total Diário</label>
-                                            <input type="text" id="valor_transporte" name="valor_transporte" placeholder="Ex: R$ 10,00">
-                                        </div>
+                                <label for="opcao_transporte">Benefício de Transporte</label>
+                                <select id="opcao_transporte" name="opcao_transporte">
+                                    <option value="Não Optante">Não Optante</option>
+                                    <option value="Vale Transporte">Vale Transporte</option>
+                                    <option value="Auxílio Combustível">Auxílio Combustível</option>
+                                </select>
+                            </div>
+
+                            <div id="transport-options-container" class="grid-full-width hidden" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+                                <div class="form-grid">
+                                    <div class="form-group vt-only">
+                                        <label for="meio_transporte">Meio de Transporte</label>
+                                        <input type="text" id="meio_transporte" name="meio_transporte" placeholder="Ex: Metrô, Ônibus...">
+                                    </div>
+                                    <div class="form-group vt-only">
+                                        <label for="qtd_transporte">Quantidade Diária</label>
+                                        <input type="number" id="qtd_transporte" name="qtd_transporte" placeholder="Ex: 2">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="valor_transporte" id="label-valor-transporte">Valor</label>
+                                        <input type="text" id="valor_transporte" name="valor_transporte" placeholder="Ex: R$ 10,00">
                                     </div>
                                 </div>
+                            </div>
                             </div>
                         </div>
                         <div class="form-step" data-step="3">
@@ -709,7 +718,6 @@
                                 <div class="form-group"> <label for="validade_acuidade_visual">Acuidade Visual</label> <input type="date" id="validade_acuidade_visual" name="validade_acuidade_visual"> </div>
                                 
                                 <div class="form-group"> <label for="validade_treinamento">Venc. Treinamento</label> <input type="date" id="validade_treinamento" name="validade_treinamento"> </div>
-                                <div class="form-group"> <label for="validade_cct">Data Base CCT</label> <input type="date" id="validade_cct" name="validade_cct"> </div>
                                 <div class="form-group"> <label for="validade_contrato_experiencia">Fim Contrato Exp.</label> <input type="date" id="validade_contrato_experiencia" name="validade_contrato_experiencia"> </div>
                             </div>
                         </div>
