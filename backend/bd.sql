@@ -24,20 +24,23 @@ CREATE TABLE `funcionarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(255) NOT NULL,
   `funcao` VARCHAR(100) DEFAULT NULL,
-  -- ADICIONADO 'afastado' NO ENUM
   `status` ENUM('ativo', 'inativo', 'afastado') NOT NULL DEFAULT 'ativo',
   `empresa` VARCHAR(100) DEFAULT NULL,
   `local` VARCHAR(100) DEFAULT NULL,
+  `horario` VARCHAR(100) DEFAULT NULL, 
   `data_admissao` DATE DEFAULT NULL,
+  `data_inicio` DATE DEFAULT NULL,
   `data_demissao` DATE DEFAULT NULL,
   `data_nascimento` DATE DEFAULT NULL,
+  `genero` VARCHAR(20) DEFAULT NULL,
   `rg` VARCHAR(20) DEFAULT NULL,
   `cpf` VARCHAR(14) DEFAULT NULL,
+  `pis` VARCHAR(20) DEFAULT NULL,
   `cnh_numero` VARCHAR(100) DEFAULT NULL,
   `estado_civil` VARCHAR(50) DEFAULT NULL,
-  `dados_conjuge` VARCHAR(255) DEFAULT NULL,
+  `dados_conjuge` VARCHAR(255) DEFAULT NULL COMMENT 'JSON com nome e nascimento',
   `quantidade_filhos` INT DEFAULT 0,
-  `nome_filhos` TEXT DEFAULT NULL,
+  `nome_filhos` TEXT DEFAULT NULL COMMENT 'JSON com lista de filhos',
   `email_pessoal` VARCHAR(255) DEFAULT NULL,
   `telefone_1` VARCHAR(20) DEFAULT NULL,
   `telefone_2` VARCHAR(20) DEFAULT NULL,
@@ -49,14 +52,11 @@ CREATE TABLE `funcionarios` (
   `bairro` VARCHAR(100) DEFAULT NULL,
   `cidade` VARCHAR(100) DEFAULT NULL,
   `estado` VARCHAR(2) DEFAULT NULL,
-  -- ADICIONADO Opção de Transporte e seus detalhes
   `opcao_transporte` ENUM('Não Optante', 'Vale Transporte', 'Auxílio Combustível') DEFAULT 'Não Optante',
   `meio_transporte` VARCHAR(255) DEFAULT NULL,
   `qtd_transporte` INT DEFAULT NULL,
   `valor_transporte` VARCHAR(50) DEFAULT NULL,
-  `genero` VARCHAR(20) DEFAULT NULL,
   `validade_cnh` DATE DEFAULT NULL,
-  -- NOVOS EXAMES ADICIONADOS
   `validade_exame_clinico` DATE DEFAULT NULL,
   `validade_audiometria` DATE DEFAULT NULL,
   `validade_eletrocardiograma` DATE DEFAULT NULL,
@@ -64,7 +64,6 @@ CREATE TABLE `funcionarios` (
   `validade_glicemia` DATE DEFAULT NULL,
   `validade_acuidade_visual` DATE DEFAULT NULL,
   `validade_treinamento` DATE DEFAULT NULL,
-  `validade_cct` DATE DEFAULT NULL, -- Label será 'Data base CCT' no front
   `validade_contrato_experiencia` DATE DEFAULT NULL,
   `motivo_demissao` TEXT DEFAULT NULL,
   `elegivel_recontratacao` ENUM('Sim', 'Não', 'Avaliar') DEFAULT NULL,
@@ -187,4 +186,3 @@ LEFT JOIN
     pastas AS p_exist ON f.id = p_exist.funcionario_id AND pastas_padrao.nome_pasta = p_exist.nome_pasta AND p_exist.parent_id = p_raiz.id
 WHERE
     p_exist.id IS NULL;
-    
