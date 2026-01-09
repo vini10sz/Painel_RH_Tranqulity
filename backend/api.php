@@ -122,7 +122,7 @@ try {
             if (!empty($_GET['vencimento'])) {
                 $coluna = $_GET['vencimento'];
                 $colunas_permitidas = [
-                    'validade_cnh', 'validade_treinamento', 'validade_cct', 'validade_contrato_experiencia',
+                    'validade_cnh', 'validade_treinamento', 'validade_contrato_experiencia',
                     'validade_exame_clinico', 'validade_audiometria', 'validade_eletrocardiograma',
                     'validade_eletroencefalograma', 'validade_glicemia', 'validade_acuidade_visual'
                 ];
@@ -513,14 +513,12 @@ try {
                     UNION ALL
                     (SELECT id, nome, 'Treinamento' as tipo, validade_treinamento as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_treinamento IS NOT NULL AND validade_treinamento <= ?)
                     UNION ALL
-                    (SELECT id, nome, 'Data Base CCT' as tipo, validade_cct as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_cct IS NOT NULL AND validade_cct <= ?)
-                    UNION ALL
                     (SELECT id, nome, 'Contrato de Exp.' as tipo, validade_contrato_experiencia as data_evento FROM funcionarios WHERE status = 'ativo' AND validade_contrato_experiencia IS NOT NULL AND validade_contrato_experiencia <= ?)
                     ORDER BY data_evento ASC
                 ";
                 
-                // Preenche os 9 primeiros placeholders com 30 dias e o último com 10 dias
-                $params_venc = array_fill(0, 9, $data_limite_venc);
+                // Preenche os 8 primeiros placeholders com 30 dias e o último com 10 dias
+                $params_venc = array_fill(0, 8, $data_limite_venc);
                 $params_venc[] = $data_limite_contrato;
 
                 $stmt_venc = $pdo->prepare($sql_venc);
