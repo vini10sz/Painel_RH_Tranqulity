@@ -56,6 +56,14 @@ CREATE TABLE `funcionarios` (
   `meio_transporte` VARCHAR(255) DEFAULT NULL,
   `qtd_transporte` INT DEFAULT NULL,
   `valor_transporte` VARCHAR(50) DEFAULT NULL,
+  `tamanho_camisa` VARCHAR(10) DEFAULT NULL,
+  `tamanho_calca` VARCHAR(10) DEFAULT NULL,
+  `tamanho_jaqueta` VARCHAR(10) DEFAULT NULL,
+  `tamanho_bota` VARCHAR(10) DEFAULT NULL,
+  `data_entrega_uniforme` DATE DEFAULT NULL,
+  `data_devolucao_uniforme` DATE DEFAULT NULL,
+  `data_reposicao_uniforme` DATE DEFAULT NULL,
+  `motivo_reposicao_uniforme` TEXT DEFAULT NULL,
   `validade_cnh` DATE DEFAULT NULL,
   `validade_exame_clinico` DATE DEFAULT NULL,
   `validade_audiometria` DATE DEFAULT NULL,
@@ -69,7 +77,6 @@ CREATE TABLE `funcionarios` (
   `elegivel_recontratacao` ENUM('Sim', 'Não', 'Avaliar') DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 --
 -- Tabela 2: `status_diario`
 -- Armazena os dados diários do dashboard de ponto.
@@ -186,3 +193,5 @@ LEFT JOIN
     pastas AS p_exist ON f.id = p_exist.funcionario_id AND pastas_padrao.nome_pasta = p_exist.nome_pasta AND p_exist.parent_id = p_raiz.id
 WHERE
     p_exist.id IS NULL;
+
+
