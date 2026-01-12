@@ -95,9 +95,23 @@ CREATE TABLE `status_diario` (
   UNIQUE KEY `data_unidade_unique` (`data`, `unidade`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Tabela 3: `logs`
+-- Quem fez o que no sistema.
+--
+CREATE TABLE `logs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT DEFAULT NULL,
+  `usuario_nome` VARCHAR(255) DEFAULT NULL,
+  `acao` VARCHAR(50) NOT NULL,
+  `detalhes` TEXT DEFAULT NULL,
+  `data_hora` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 --
--- Tabela 3: `pastas`
+-- Tabela 4: `pastas`
 -- Organiza as pastas e subpastas de cada funcionário.
 --
 CREATE TABLE `pastas` (
@@ -111,7 +125,7 @@ CREATE TABLE `pastas` (
 
 
 --
--- Tabela 4: `documentos`
+-- Tabela 5: `documentos`
 -- Armazena as informações de cada documento enviado (upload).
 --
 CREATE TABLE `documentos` (
@@ -193,5 +207,4 @@ LEFT JOIN
     pastas AS p_exist ON f.id = p_exist.funcionario_id AND pastas_padrao.nome_pasta = p_exist.nome_pasta AND p_exist.parent_id = p_raiz.id
 WHERE
     p_exist.id IS NULL;
-
 
