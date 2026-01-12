@@ -101,7 +101,9 @@
                     </div>
                 </div>
             </div>
-            <button id="logout-btn" class="logout-button" title="Sair do Sistema">Sair <i class="fas fa-sign-out-alt"></i></button>
+            <button id="logout-btn" class="logout-button" title="Sair do Sistema">
+            Sair <i class="fas fa-sign-out-alt"></i>
+            </button>
             <button id="menu-toggle" class="menu-toggle"><i class="fas fa-bars"></i></button>
         </div>
     </div>
@@ -147,6 +149,45 @@
                                             <input type="number" class="children-age-max-filter" placeholder="Até" min="0">
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label><i class="fas fa-tshirt"></i> Tam. Camisa</label>
+                                    <select class="shirt-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="PP">PP</option><option value="P">P</option><option value="M">M</option>
+                                        <option value="G">G</option><option value="GG">GG</option><option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-user-tag"></i> Tam. Calça</label>
+                                    <select class="pants-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="36">36</option><option value="38">38</option><option value="40">40</option>
+                                        <option value="42">42</option><option value="44">44</option><option value="46">46</option>
+                                        <option value="48">48</option><option value="50">50</option><option value="52">52</option>
+                                        <option value="54">54</option><option value="56">56</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-vest"></i> Tam. Jaqueta</label>
+                                    <select class="jacket-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option>
+                                        <option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-shoe-prints"></i> Tam. Bota</label>
+                                    <select class="boots-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="34">34</option><option value="35">35</option><option value="36">36</option>
+                                        <option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                                        <option value="40">40</option><option value="41">41</option><option value="42">42</option>
+                                        <option value="43">43</option><option value="44">44</option><option value="45">45</option>
+                                    </select>
                                 </div>
                                 <div class="filter-group">
                                     <label><i class="fas fa-exclamation-triangle"></i> Vencimentos</label>
@@ -240,6 +281,45 @@
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <div class="filter-group">
+                                    <label><i class="fas fa-tshirt"></i> Tam. Camisa</label>
+                                    <select class="shirt-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="PP">PP</option><option value="P">P</option><option value="M">M</option>
+                                        <option value="G">G</option><option value="GG">GG</option><option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-user-tag"></i> Tam. Calça</label>
+                                    <select class="pants-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="36">36</option><option value="38">38</option><option value="40">40</option>
+                                        <option value="42">42</option><option value="44">44</option><option value="46">46</option>
+                                        <option value="48">48</option><option value="50">50</option><option value="52">52</option>
+                                        <option value="54">54</option><option value="56">56</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-vest"></i> Tam. Jaqueta</label>
+                                    <select class="jacket-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option>
+                                        <option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-shoe-prints"></i> Tam. Bota</label>
+                                    <select class="boots-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="34">34</option><option value="35">35</option><option value="36">36</option>
+                                        <option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                                        <option value="40">40</option><option value="41">41</option><option value="42">42</option>
+                                        <option value="43">43</option><option value="44">44</option><option value="45">45</option>
+                                    </select>
+                                </div>
                                 <div class="filter-group">
                                     <label><i class="fas fa-exclamation-triangle"></i> Vencimentos</label>
                                     <select class="expiry-filter">
@@ -332,6 +412,45 @@
                                             <input type="number" class="children-age-max-filter" placeholder="Até" min="0">
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label><i class="fas fa-tshirt"></i> Tam. Camisa</label>
+                                    <select class="shirt-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="PP">PP</option><option value="P">P</option><option value="M">M</option>
+                                        <option value="G">G</option><option value="GG">GG</option><option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-user-tag"></i> Tam. Calça</label>
+                                    <select class="pants-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="36">36</option><option value="38">38</option><option value="40">40</option>
+                                        <option value="42">42</option><option value="44">44</option><option value="46">46</option>
+                                        <option value="48">48</option><option value="50">50</option><option value="52">52</option>
+                                        <option value="54">54</option><option value="56">56</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-vest"></i> Tam. Jaqueta</label>
+                                    <select class="jacket-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option>
+                                        <option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label><i class="fas fa-shoe-prints"></i> Tam. Bota</label>
+                                    <select class="boots-size-filter">
+                                        <option value="">Todos</option>
+                                        <option value="34">34</option><option value="35">35</option><option value="36">36</option>
+                                        <option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                                        <option value="40">40</option><option value="41">41</option><option value="42">42</option>
+                                        <option value="43">43</option><option value="44">44</option><option value="45">45</option>
+                                    </select>
                                 </div>
                                 <div class="filter-group">
                                     <label><i class="fas fa-birthday-cake"></i> Mês de Aniversário</label>
@@ -700,6 +819,65 @@
                                     <div class="form-group">
                                         <label for="valor_transporte" id="label-valor-transporte">Valor</label>
                                         <input type="text" id="valor_transporte" name="valor_transporte" placeholder="Ex: R$ 10,00">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group-divider">Gestão de Uniformes</div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="tamanho_camisa">Tamanho Camisa</label>
+                                    <select id="tamanho_camisa" name="tamanho_camisa">
+                                        <option value="">Selecione...</option>
+                                        <option value="PP">PP</option><option value="P">P</option><option value="M">M</option>
+                                        <option value="G">G</option><option value="GG">GG</option><option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="tamanho_calca">Tamanho Calça</label>
+                                    <select id="tamanho_calca" name="tamanho_calca">
+                                        <option value="">Selecione...</option>
+                                        <option value="36">36</option><option value="38">38</option><option value="40">40</option>
+                                        <option value="42">42</option><option value="44">44</option><option value="46">46</option>
+                                        <option value="48">48</option><option value="50">50</option><option value="52">52</option>
+                                        <option value="54">54</option><option value="56">56</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="tamanho_jaqueta">Tamanho Jaqueta</label>
+                                    <select id="tamanho_jaqueta" name="tamanho_jaqueta">
+                                        <option value="">Selecione...</option>
+                                        <option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option>
+                                        <option value="XG">XG</option>
+                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="tamanho_bota">Tamanho Bota</label>
+                                    <select id="tamanho_bota" name="tamanho_bota">
+                                        <option value="">Selecione...</option>
+                                        <option value="34">34</option><option value="35">35</option><option value="36">36</option>
+                                        <option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                                        <option value="40">40</option><option value="41">41</option><option value="42">42</option>
+                                        <option value="43">43</option><option value="44">44</option><option value="45">45</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group"> <label for="data_entrega_uniforme">Data Entrega Inicial</label> <input type="date" id="data_entrega_uniforme" name="data_entrega_uniforme"> </div>
+                                <div class="form-group"> <label for="data_devolucao_uniforme">Data Devolução (Final)</label> <input type="date" id="data_devolucao_uniforme" name="data_devolucao_uniforme"> </div>
+                                
+                                <div class="form-group grid-full-width" style="border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 10px;">
+                                    <strong style="display:block; margin-bottom:10px; color: var(--azul-principal);">Registro de Reposição</strong>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px;">
+                                        <div>
+                                            <label for="data_reposicao_uniforme">Data Reposição</label>
+                                            <input type="date" id="data_reposicao_uniforme" name="data_reposicao_uniforme">
+                                        </div>
+                                        <div>
+                                            <label for="motivo_reposicao_uniforme">Motivo da Reposição</label>
+                                            <input type="text" id="motivo_reposicao_uniforme" name="motivo_reposicao_uniforme" placeholder="Ex: Desgaste natural, Perda, Troca de tamanho...">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
