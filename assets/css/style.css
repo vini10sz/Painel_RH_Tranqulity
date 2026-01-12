@@ -1557,3 +1557,124 @@ body.dark-mode .trash-warning {
 body.dark-mode #modal-input .input-dialog {
     background-color: #2a2a52;
 }
+
+
+/* --- ESTILOS DO CONTROLE DE UNIFORMES (NOVO) --- */
+
+.uniforme-wrapper {
+    margin-top: 25px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--cinza-borda);
+}
+
+.uniforme-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--azul-principal);
+    color: var(--azul-principal);
+}
+
+.uniforme-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.uniforme-grid-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.uniforme-item-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+    transition: transform 0.2s;
+}
+
+.uniforme-item-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    border-color: var(--azul-principal);
+}
+
+.uniforme-icon {
+    font-size: 24px;
+    color: var(--azul-principal);
+    margin-bottom: 8px;
+    display: block;
+}
+
+.uniforme-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.uniforme-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.uniforme-datas-row {
+    display: flex;
+    gap: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed #ddd;
+    flex-wrap: wrap;
+}
+
+.data-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    padding: 8px 15px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    flex: 1;
+}
+
+.data-badge i { font-size: 18px; color: #666; }
+.data-badge div { display: flex; flex-direction: column; }
+.data-badge span { font-size: 0.75rem; color: #888; }
+.data-badge strong { font-size: 0.95rem; color: #333; }
+
+.reposicao-alert {
+    margin-top: 15px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-left: 5px solid #ffc107;
+    padding: 15px;
+    border-radius: 6px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.reposicao-alert i { font-size: 24px; color: #856404; margin-top: 2px; }
+.reposicao-content strong { display: block; color: #856404; margin-bottom: 4px; }
+.reposicao-content p { margin: 0; font-size: 0.9rem; color: #533f03; }
+
+/* Ajuste Dark Mode */
+body.dark-mode .uniforme-wrapper { background-color: #2a2a52; border-color: #444; }
+body.dark-mode .uniforme-item-card, body.dark-mode .data-badge { background-color: #1e1e3f; border-color: #444; }
+body.dark-mode .uniforme-value, body.dark-mode .data-badge strong { color: #fff; }
+body.dark-mode .reposicao-alert { background-color: #3a2e0a; border-color: #584610; }
+body.dark-mode .reposicao-alert i, body.dark-mode .reposicao-content strong, body.dark-mode .reposicao-content p { color: #ffca2c; }
