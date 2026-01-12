@@ -941,6 +941,11 @@
         </div>
     </div>
     
+    <script>
+        // Injeta o token CSRF da sessão PHP no JavaScript
+        const CSRF_TOKEN = "<?php echo $_SESSION['csrf_token'] ?? ''; ?>";
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
