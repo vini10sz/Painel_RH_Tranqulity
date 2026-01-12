@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final Atualizada
+// assets/js/script.js - Versão Final Atualizada com Gestão de Uniformes
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -408,7 +408,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 estado: container.querySelector('.state-filter')?.value,
                 vencimento: container.querySelector('.expiry-filter')?.value,
                 recontratacao: container.querySelector('.rehire-filter')?.value,
-                transporte: container.querySelector('.transport-filter')?.value
+                transporte: container.querySelector('.transport-filter')?.value,
+                
+                // NOVOS FILTROS DE UNIFORME
+                tamanho_camisa: container.querySelector('.shirt-size-filter')?.value,
+                tamanho_calca: container.querySelector('.pants-size-filter')?.value,
+                tamanho_bota: container.querySelector('.boots-size-filter')?.value,
+                tamanho_jaqueta: container.querySelector('.jacket-size-filter')?.value
             };
     
             let filteredList = sourceList;
@@ -440,6 +446,21 @@ document.addEventListener('DOMContentLoaded', function() {
             if (filters.vencimento && type === 'ativos') {
                 filteredList = filteredList.filter(func => func[filters.vencimento] && new Date(func[filters.vencimento] + 'T12:00:00') < new Date());
             }
+            
+            // LÓGICA DE FILTRO DE UNIFORMES
+            if (filters.tamanho_camisa) {
+                filteredList = filteredList.filter(func => func.tamanho_camisa === filters.tamanho_camisa);
+            }
+            if (filters.tamanho_calca) {
+                filteredList = filteredList.filter(func => func.tamanho_calca === filters.tamanho_calca);
+            }
+            if (filters.tamanho_bota) {
+                filteredList = filteredList.filter(func => func.tamanho_bota === filters.tamanho_bota);
+            }
+            if (filters.tamanho_jaqueta) {
+                filteredList = filteredList.filter(func => func.tamanho_jaqueta === filters.tamanho_jaqueta);
+            }
+
             if (type === 'inativos' && filters.recontratacao) {
                 const normalizedFilter = filters.recontratacao.toLowerCase();
                 filteredList = filteredList.filter(func => {
@@ -965,6 +986,66 @@ document.addEventListener('DOMContentLoaded', function() {
             ? new Date(func.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') 
             : 'Não informado';
 
+        // Lógica para exibição de UNIFORMES (ATUALIZADA)
+        const uniformeHtml = `
+            <div class="uniforme-wrapper">
+                <div class="uniforme-header">
+                    <i class="fas fa-tshirt"></i>
+                    <h4>Controle de Uniformes</h4>
+                </div>
+                
+                <div class="uniforme-grid-display">
+                    <div class="uniforme-item-card">
+                        <i class="fas fa-user-tie uniforme-icon"></i>
+                        <span class="uniforme-label">Camisa</span>
+                        <span class="uniforme-value">${func.tamanho_camisa || '-'}</span>
+                    </div>
+                    <div class="uniforme-item-card">
+                        <i class="fas fa-columns uniforme-icon"></i> 
+                        <span class="uniforme-label">Calça</span>
+                        <span class="uniforme-value">${func.tamanho_calca || '-'}</span>
+                    </div>
+                    <div class="uniforme-item-card">
+                        <i class="fas fa-vest uniforme-icon"></i>
+                        <span class="uniforme-label">Jaqueta</span>
+                        <span class="uniforme-value">${func.tamanho_jaqueta || '-'}</span>
+                    </div>
+                    <div class="uniforme-item-card">
+                        <i class="fas fa-shoe-prints uniforme-icon"></i>
+                        <span class="uniforme-label">Bota</span>
+                        <span class="uniforme-value">${func.tamanho_bota || '-'}</span>
+                    </div>
+                </div>
+
+                <div class="uniforme-datas-row">
+                    <div class="data-badge">
+                        <i class="fas fa-calendar-check" style="color: var(--verde-sucesso);"></i>
+                        <div>
+                            <span>Data de Entrega</span>
+                            <strong>${func.data_entrega_uniforme && func.data_entrega_uniforme !== '0000-00-00' ? new Date(func.data_entrega_uniforme + 'T12:00:00').toLocaleDateString('pt-BR') : 'Pendente'}</strong>
+                        </div>
+                    </div>
+                    <div class="data-badge">
+                         <i class="fas fa-calendar-times" style="color: var(--vermelho-erro);"></i>
+                        <div>
+                            <span>Data de Devolução</span>
+                            <strong>${func.data_devolucao_uniforme && func.data_devolucao_uniforme !== '0000-00-00' ? new Date(func.data_devolucao_uniforme + 'T12:00:00').toLocaleDateString('pt-BR') : 'Em uso'}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                ${func.data_reposicao_uniforme && func.data_reposicao_uniforme !== '0000-00-00' ? `
+                <div class="reposicao-alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div class="reposicao-content">
+                        <strong>Histórico de Reposição</strong>
+                        <p>Efetuada em ${new Date(func.data_reposicao_uniforme + 'T12:00:00').toLocaleDateString('pt-BR')}.</p>
+                        <p>Motivo: <em>${func.motivo_reposicao_uniforme || 'Não especificado'}</em></p>
+                    </div>
+                </div>` : ''}
+            </div>
+        `;
+
         tabPessoal.innerHTML = `
             <div class="info-pessoal-grid">
                 ${historicoDemissaoHtml}
@@ -992,6 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div><strong>Telefone Principal</strong> ${func.telefone_1 || 'Não informado'}</div>
                 <div><strong>Telefone 2</strong> ${func.telefone_2 || 'Não informado'}</div>
                 <div><strong>Telefone 3</strong> ${func.telefone_3 || 'Não informado'}</div>
+                
+                ${uniformeHtml}
             </div>
         `;
         
@@ -1041,7 +1124,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     'data_nascimento', 'rg', 'cpf', 'estado_civil', 'cnh_numero', 'telefone_1', 'telefone_2', 'telefone_3',
                     'email_pessoal', 'genero', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
                     'opcao_transporte', 'meio_transporte', 'qtd_transporte', 'valor_transporte',
-                    'status'
+                    'status',
+                    // NOVOS CAMPOS DE UNIFORME
+                    'tamanho_camisa', 'tamanho_calca', 'tamanho_jaqueta', 'tamanho_bota',
+                    'data_entrega_uniforme', 'data_devolucao_uniforme', 
+                    'data_reposicao_uniforme', 'motivo_reposicao_uniforme'
                 ];
                 formFields.forEach(field => {
                     const el = document.getElementById(field);
@@ -1568,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('popstate', handleRouteChange);
 
         document.querySelectorAll('.filtros-container').forEach(container => {
-            const inputs = container.querySelectorAll('.search-input, .company-filter, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter, .transport-filter');
+            const inputs = container.querySelectorAll('.search-input, .company-filter, .location-filter, .gender-filter, .children-filter, .children-age-min-filter, .children-age-max-filter, .birthday-month-filter, .expiry-filter, .rehire-filter, .city-filter, .state-filter, .transport-filter, .shirt-size-filter, .pants-size-filter, .boots-size-filter, .jacket-size-filter');
             let timer;
             inputs.forEach(input => {
                 const eventType = ['SELECT', 'INPUT'].includes(input.tagName) ? 'change' : 'input';
