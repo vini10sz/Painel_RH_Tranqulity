@@ -1678,3 +1678,233 @@ body.dark-mode .uniforme-item-card, body.dark-mode .data-badge { background-colo
 body.dark-mode .uniforme-value, body.dark-mode .data-badge strong { color: #fff; }
 body.dark-mode .reposicao-alert { background-color: #3a2e0a; border-color: #584610; }
 body.dark-mode .reposicao-alert i, body.dark-mode .reposicao-content strong, body.dark-mode .reposicao-content p { color: #ffca2c; }
+
+
+
+
+
+
+
+/* ================================================= */
+/* === NOTIFICAÇÕES MODERNAS (DESIGN CARD) === */
+/* ================================================= */
+
+/* Painel Principal com efeito Glass (opcional) ou Sombra Profunda */
+.notification-panel {
+    background-color: #ffffff;
+    border-radius: 16px; /* Bordas mais arredondadas */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15); /* Sombra mais difusa e moderna */
+    border: 1px solid rgba(0,0,0,0.05);
+    width: 380px; /* Um pouco mais largo para melhor leitura */
+    overflow: hidden; /* Garante que nada saia das bordas arredondadas */
+}
+
+/* Cabeçalho do Painel */
+.notification-panel-header {
+    padding: 20px 20px 15px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-panel-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--azul-escuro);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Abas Modernas (Estilo Pílula) */
+.notification-tabs {
+    display: flex;
+    background-color: #f4f6f8;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 0;
+}
+
+.notification-tabs .tab-btn {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.notification-tabs .tab-btn:hover {
+    color: var(--azul-principal);
+    background-color: rgba(255,255,255,0.5);
+}
+
+.notification-tabs .tab-btn.active {
+    background-color: #fff;
+    color: var(--azul-principal);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Corpo e Lista */
+.notification-panel-body {
+    background-color: #f9fbfc; /* Fundo levemente cinza para destacar os cards brancos */
+    padding: 10px 0;
+}
+
+.notification-items-wrapper {
+    padding: 0 12px; /* Espaço nas laterais para os cards não colarem na borda */
+}
+
+/* --- ITEM DE NOTIFICAÇÃO (CARD) --- */
+.notification-item {
+    display: flex;
+    align-items: flex-start; /* Alinha ícone ao topo se o texto for longo */
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 10px; /* Espaço entre as notificações */
+    background-color: #fff;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.notification-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    border-color: rgba(0, 123, 255, 0.2);
+}
+
+/* Checkbox estilizado (opcional - posicionamento) */
+.notification-item-checkbox {
+    margin-top: 4px; /* Alinha com o título */
+    accent-color: var(--azul-principal);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Ícones com Círculo de Fundo Suave */
+.notification-item .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%; /* Círculo perfeito */
+    flex-shrink: 0;
+    font-size: 16px;
+}
+
+/* Cores específicas para cada tipo */
+.notification-item.vencido .icon {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--vermelho-erro);
+}
+.notification-item.vencido {
+    border-left: 3px solid var(--vermelho-erro);
+}
+
+.notification-item.vencendo .icon {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #d39e00; /* Um amarelo um pouco mais escuro para leitura */
+}
+.notification-item.vencendo {
+    border-left: 3px solid #ffc107;
+}
+
+.notification-item.aniversario .icon {
+    background-color: rgba(111, 66, 193, 0.1);
+    color: var(--roxo-info);
+}
+.notification-item.aniversario {
+    border-left: 3px solid var(--roxo-info);
+}
+
+/* Conteúdo de Texto */
+.notification-item-content {
+    flex-grow: 1;
+}
+
+.notification-item-content p {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.notification-item-content p strong {
+    font-weight: 700;
+    color: var(--azul-escuro);
+}
+
+.notification-item-content .meta {
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: #f0f2f5;
+    color: #666;
+}
+
+/* Destaque para textos urgentes */
+.notification-item.vencido .meta { color: var(--vermelho-erro); background-color: rgba(220, 53, 69, 0.05); }
+.notification-item.vencendo .meta { color: #b68b00; background-color: rgba(255, 193, 7, 0.1); }
+.notification-item.aniversario .meta { color: var(--roxo-info); background-color: rgba(111, 66, 193, 0.05); }
+
+/* Scrollbar Personalizada */
+.notification-panel-body::-webkit-scrollbar {
+    width: 6px;
+}
+.notification-panel-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.notification-panel-body::-webkit-scrollbar-thumb {
+    background-color: #ddd;
+    border-radius: 10px;
+}
+.notification-panel-body::-webkit-scrollbar-thumb:hover {
+    background-color: #ccc;
+}
+
+/* --- DARK MODE ADJUSTMENTS --- */
+body.dark-mode .notification-panel {
+    background-color: #1e1e3f;
+    border-color: #444;
+}
+body.dark-mode .notification-panel-header,
+body.dark-mode .notification-list-actions {
+    background-color: #1e1e3f;
+    border-bottom-color: #333;
+}
+body.dark-mode .notification-tabs {
+    background-color: #2a2a52;
+}
+body.dark-mode .notification-tabs .tab-btn.active {
+    background-color: #1e1e3f;
+    color: #fff;
+}
+body.dark-mode .notification-panel-body {
+    background-color: #16162d; /* Fundo mais escuro */
+}
+body.dark-mode .notification-item {
+    background-color: #2a2a52;
+    border-color: transparent;
+    box-shadow: none;
+}
+body.dark-mode .notification-item:hover {
+    background-color: #323260;
+}
+body.dark-mode .notification-item-content p {
+    color: #e0e0e0;
+}
+body.dark-mode .notification-item-content p strong {
+    color: #fff;
+}
