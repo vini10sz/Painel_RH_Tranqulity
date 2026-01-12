@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final Atualizada com Gestão de Uniformes
+// assets/js/script.js - Versão Final (Segurança CSRF e Funcionalidades Completas)
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -136,16 +136,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function postAPI(formData) {
         try {
+            // --- SEGURANÇA CSRF ---
+            // Injeta o token automaticamente se ele estiver definido na página (index.php)
+            if (typeof CSRF_TOKEN !== 'undefined') {
+                formData.append('csrf_token', CSRF_TOKEN);
+            }
+
             const response = await fetch(API_URL, { method: 'POST', body: formData });
+            
             if (response.status === 401) {
-                if (window.location.pathname.includes('index.php')) {
-                    window.location.href = 'login.php';
-                }
+                window.location.href = 'login.php';
                 return null;
             }
+            if (response.status === 403) {
+                 throw new Error('Sessão expirada ou Token inválido. Recarregue a página.');
+            }
+
             if (!response.ok) throw new Error(`Erro de rede: ${response.status}`);
             const result = await response.json();
-             if (!result.success && formData.get('action') !== 'login' && formData.get('action') !== 'esqueci_senha') {
+            
+            if (!result.success && formData.get('action') !== 'login' && formData.get('action') !== 'esqueci_senha') {
                  throw new Error(result.message || 'Erro ao enviar dados.');
             }
             return result;
@@ -235,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 onConfirm(value);
                 closeModal();
             } else {
-                showToast('O nome não pode estar vazio.', 'error');
+                showToast('O campo não pode estar vazio.', 'error');
             }
         };
 
@@ -410,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 recontratacao: container.querySelector('.rehire-filter')?.value,
                 transporte: container.querySelector('.transport-filter')?.value,
                 
-                // NOVOS FILTROS DE UNIFORME
+                // FILTROS DE UNIFORME
                 tamanho_camisa: container.querySelector('.shirt-size-filter')?.value,
                 tamanho_calca: container.querySelector('.pants-size-filter')?.value,
                 tamanho_bota: container.querySelector('.boots-size-filter')?.value,
@@ -578,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await fetchAPI('action=get_notifications');
         if (!notificationCount) return;
 
-        // Resetar estado da UI (checkboxes e botões) antes de renderizar
+        // Resetar estado da UI
         resetNotificationUI();
 
         let notificationStatus = JSON.parse(localStorage.getItem('notificationStatus')) || {};
@@ -613,14 +623,14 @@ document.addEventListener('DOMContentLoaded', function() {
                      const diffTime = dataEvento - hoje;
                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                      
-                     // Se faltar mais de 10 dias, ignora este item (não adiciona ao localStorage)
+                     // Se faltar mais de 10 dias, ignora este item
                      if (diffDays > 10) {
                          return;
                      }
                 }
 
                 const notificationId = `${item.tipo}-${item.id}-${item.data_evento}`;
-                validNotificationIds.add(notificationId); // Marca como válida
+                validNotificationIds.add(notificationId); 
 
                 if (!notificationStatus[notificationId]) {
                     notificationStatus[notificationId] = { status: 'pending', item_data: item, trashed_at: null };
@@ -628,13 +638,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // --- SINCRONIZAÇÃO AUTOMÁTICA (LIMPEZA) ---
-            // Se uma notificação estava no localStorage, mas NÃO veio da API agora 
-            // (significa que o funcionário foi afastado/inativado ou documento renovado), removemos.
+            // Sincronização e Limpeza de Itens que não existem mais
             for (const id in notificationStatus) {
-                // Se o ID não está na lista de válidos da API (e não é um item deletado logicamente)
                 if (!validNotificationIds.has(id) && notificationStatus[id].status !== 'deleted') {
-                    // Remove do objeto local
                     delete notificationStatus[id];
                     statusChanged = true;
                 }
@@ -666,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function() {
             lixeiraWrapper.innerHTML = '<p class="no-notifications">Lixeira vazia.</p>';
         } else {
             
-            // --- ORDENAÇÃO: 1º Aniversário, 2º Vencidos, 3º A Vencer ---
+            // ORDENAÇÃO: 1º Aniversário, 2º Vencidos, 3º A Vencer
             notificationsToRender.sort((a,b) => {
                 if (!a.item_data || !b.item_data) return 0;
 
@@ -674,9 +680,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const hoje = new Date(); hoje.setHours(0,0,0,0);
                     const dataEvento = new Date(item.data_evento + 'T12:00:00');
                     
-                    if (item.tipo === 'Aniversário') return 1; // Prioridade Máxima
-                    if (dataEvento <= hoje) return 2;          // Vencidos (ou vence hoje)
-                    return 3;                                  // Vencendo futuramente
+                    if (item.tipo === 'Aniversário') return 1; 
+                    if (dataEvento <= hoje) return 2;          
+                    return 3;                                  
                 };
 
                 const pA = getPriority(a.item_data);
@@ -686,10 +692,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return pA - pB;
                 }
                 
-                // Se prioridade for igual, ordena por data (mais antigo primeiro)
                 return new Date(a.item_data.data_evento) - new Date(b.item_data.data_evento);
             });
-            // ---------------------------
 
             notificationsToRender.forEach(statusInfo => {
                 if (!statusInfo || !statusInfo.item_data) return;
@@ -703,7 +707,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const dataOriginal = new Date(item.data_evento + 'T12:00:00');
                     let aniverEsteAno = new Date(hoje.getFullYear(), dataOriginal.getMonth(), dataOriginal.getDate());
                     
-                    // Se já passou este ano e não é hoje, calcula para o próximo
                     let targetDate = aniverEsteAno;
                     if (targetDate < hoje) {
                         targetDate = new Date(hoje.getFullYear() + 1, dataOriginal.getMonth(), dataOriginal.getDate());
@@ -735,6 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const checkboxHTML = `<input type="checkbox" class="notification-item-checkbox" data-notification-id="${notificationId}">`;
                 const notificationHTML = `<div class="notification-item ${statusClass}" data-employee-id="${item.id}">${checkboxHTML}<div class="icon"><i class="fas ${icon}"></i></div><div class="notification-item-content"><p><strong>${item.tipo}</strong> de ${item.nome}</p><span class="meta">${metaText}</span></div></div>`;
+                
 
                 switch (statusInfo.status) {
                     case 'read':
@@ -981,12 +985,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const enderecoCompleto = `${func.rua || ''}, ${func.numero || 'S/N'}${func.complemento ? ' - ' + func.complemento : ''}`;
 
-        // Lógica para Data de Início na visualização
         const dataInicioFormatada = func.data_inicio && func.data_inicio !== '0000-00-00' 
             ? new Date(func.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') 
             : 'Não informado';
 
-        // Lógica para exibição de UNIFORMES (ATUALIZADA)
         const uniformeHtml = `
             <div class="uniforme-wrapper">
                 <div class="uniforme-header">
@@ -1088,7 +1090,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('form-modal-title').textContent = id ? 'Editar Funcionário' : 'Adicionar Funcionário';
         document.getElementById('employee-id').value = id || '';
         
-        // Define o status no select
         const statusSelect = document.getElementById('status');
         if (statusSelect) {
             statusSelect.value = status; 
@@ -1107,7 +1108,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('conjuge_nome').value = '';
         document.getElementById('conjuge_data_nascimento').value = '';
 
-        // Esconde detalhes de transporte inicialmente (ATUALIZADO)
         const transportContainer = document.getElementById('transport-options-container');
         if(transportContainer) transportContainer.classList.add('hidden');
 
@@ -1117,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const func = result.data;
                 const formFields = [
                     'nome', 'funcao', 'empresa', 'local', 'data_movimentacao',
-                    'horario', 'data_inicio', 'pis', // Novos campos adicionados na lista de carga
+                    'horario', 'data_inicio', 'pis', 
                     'validade_cnh', 'validade_treinamento', 'validade_contrato_experiencia',
                     'validade_exame_clinico', 'validade_audiometria', 'validade_eletrocardiograma', 
                     'validade_eletroencefalograma', 'validade_glicemia', 'validade_acuidade_visual',
@@ -1125,7 +1125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     'email_pessoal', 'genero', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
                     'opcao_transporte', 'meio_transporte', 'qtd_transporte', 'valor_transporte',
                     'status',
-                    // NOVOS CAMPOS DE UNIFORME
                     'tamanho_camisa', 'tamanho_calca', 'tamanho_jaqueta', 'tamanho_bota',
                     'data_entrega_uniforme', 'data_devolucao_uniforme', 
                     'data_reposicao_uniforme', 'motivo_reposicao_uniforme'
@@ -1164,7 +1163,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Força a atualização visual dos detalhes de transporte
         const transportSelectModal = document.getElementById('opcao_transporte');
         if(transportSelectModal) {
             transportSelectModal.dispatchEvent(new Event('change'));
@@ -1517,7 +1515,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupAppEventListeners() {
         setupInputMasks();
 
-        // --- CORREÇÃO: LÓGICA DO TOGGLE DE NOTIFICAÇÕES ---
         if (notificationToggle) {
             notificationToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1525,7 +1522,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Fecha o painel se clicar fora dele
         document.addEventListener('click', (e) => {
             if (notificationPanel && !notificationPanel.classList.contains('hidden')) {
                 if (!notificationPanel.contains(e.target) && !notificationToggle.contains(e.target)) {
@@ -1534,7 +1530,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Lógica para as abas dentro do painel de notificação
         const notifTabs = document.querySelectorAll('.notification-tabs .tab-btn');
         notifTabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -1547,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // --- LÓGICA DE SELEÇÃO E AÇÕES DAS NOTIFICAÇÕES (CORRIGIDA) ---
+        // --- LÓGICA DE SELEÇÃO E AÇÕES DAS NOTIFICAÇÕES ---
         const setupNotificationActions = () => {
             const lists = ['pendentes', 'lidas', 'lixeira'];
             
@@ -1557,7 +1552,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const selectAll = container.querySelector('.notification-select-all');
                 
-                // Toggle Select All
                 if (selectAll) {
                     selectAll.addEventListener('change', (e) => {
                         const checkboxes = container.querySelectorAll('.notification-item-checkbox');
@@ -1566,7 +1560,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 
-                // Event Delegation para checkboxes dinâmicos
                 container.addEventListener('change', (e) => {
                     if (e.target.classList.contains('notification-item-checkbox')) {
                         updateActionButtonsState(container);
@@ -1585,7 +1578,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 buttons.forEach(btn => btn.disabled = checkedCount === 0);
             }
 
-            // Handler Genérico para Ações
             const handleAction = (containerId, newStatus, isPermanentDelete = false) => {
                 const container = document.getElementById(containerId);
                 const selected = container.querySelectorAll('.notification-item-checkbox:checked');
@@ -1601,7 +1593,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (newStatus === 'trashed') {
                                 notificationStatus[id].trashed_at = new Date().toISOString();
                             } else if (newStatus === 'read') {
-                                notificationStatus[id].trashed_at = null; // Recuperar
+                                notificationStatus[id].trashed_at = null; 
                             }
                         }
                     });
@@ -1623,7 +1615,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
 
-            // Vínculo dos botões
             const btnRead = document.getElementById('mark-as-read-btn');
             if(btnRead) btnRead.addEventListener('click', () => handleAction('pendentes-list', 'read'));
 
@@ -1638,7 +1629,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         setupNotificationActions();
-        // --------------------------------------------------
         
         populateSelectWithOptions('.company-filter, #empresa, #company-filter-dashboard', empresas, 'Todas as Empresas');
         populateSelectWithOptions('.location-filter, #local, #unit-filter', unidades, 'Todas as Unidades');
@@ -1712,7 +1702,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cepInput.addEventListener('blur', (e) => fetchAddressByCep(e.target.value));
         }
 
-        // Lógica para mostrar/ocultar campos de Transporte (Vale Transporte e Auxílio Combustível)
         const transportSelect = document.getElementById('opcao_transporte');
         const transportContainer = document.getElementById('transport-options-container');
         const vtFields = document.querySelectorAll('.vt-only');
@@ -1726,21 +1715,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     transportContainer.classList.remove('hidden');
                     
                     if (selected === 'Vale Transporte') {
-                        // Caso VT: Mostra Meio e Quantidade
                         vtFields.forEach(el => el.classList.remove('hidden'));
                         if(valorLabel) valorLabel.textContent = 'Valor Total Diário';
                     } else {
-                        // Caso Auxílio Combustível: Esconde Meio e Quantidade
                         vtFields.forEach(el => el.classList.add('hidden'));
-                        
-                        // Limpa os campos ocultos para não enviar dados errados
                         document.getElementById('meio_transporte').value = '';
                         document.getElementById('qtd_transporte').value = '';
-                        
                         if(valorLabel) valorLabel.textContent = 'Valor do Auxílio';
                     }
                 } else {
-                    // Caso Não Optante
                     transportContainer.classList.add('hidden');
                     document.getElementById('meio_transporte').value = '';
                     document.getElementById('qtd_transporte').value = '';
@@ -2062,21 +2045,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', e => {
-                // Verifica se clicou no botão de fechar (O "X")
                 if (e.target.closest('.modal-close-btn')) {
                     modal.classList.add('hidden');
                     return;
                 }
-                
-                // Se clicou no overlay (fundo escuro fora do conteúdo)
                 if (e.target === modal) {
-                    // ALTERAÇÃO AQUI:
-                    // Adicionamos "|| modal.id === 'employee-modal'"
-                    // Agora ele ignora o clique fora tanto no Formulário quanto nos Detalhes do Funcionário
                     if (modal.id === 'form-modal' || modal.id === 'employee-modal') {
-                        return; // Não faz nada, mantendo a janela aberta
+                        return; 
                     }
-                    // Para outros modais (como confirmações simples), fecha normalmente
                     modal.classList.add('hidden');
                 }
             });
