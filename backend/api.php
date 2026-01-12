@@ -129,6 +129,25 @@ try {
                 if (in_array($coluna, $colunas_permitidas)) {
                     $base_sql .= " AND {$coluna} IS NOT NULL AND {$coluna} <= CURDATE()";
                 }
+
+                // --- NOVOS FILTROS DE UNIFORME ---
+            if (!empty($_GET['tamanho_camisa'])) {
+                $base_sql .= " AND tamanho_camisa = ?";
+                $params[] = $_GET['tamanho_camisa'];
+            }
+            if (!empty($_GET['tamanho_calca'])) {
+                $base_sql .= " AND tamanho_calca = ?";
+                $params[] = $_GET['tamanho_calca'];
+            }
+            if (!empty($_GET['tamanho_bota'])) {
+                $base_sql .= " AND tamanho_bota = ?";
+                $params[] = $_GET['tamanho_bota'];
+            }
+            if (!empty($_GET['tamanho_jaqueta'])) {
+                $base_sql .= " AND tamanho_jaqueta = ?";
+                $params[] = $_GET['tamanho_jaqueta'];
+            }
+            
             }
             
             $base_sql .= " ORDER BY nome ASC";
