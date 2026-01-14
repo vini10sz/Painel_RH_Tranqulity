@@ -1015,21 +1015,39 @@ body.dark-mode .reposicao-alert i, body.dark-mode .reposicao-content strong, bod
 }
 
 /* Telas Muito Pequenas */
-@media (max-width: 480px) {
-    .section-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-    .section-header i { margin-right: 0; }
-    .login-box { padding: 30px 20px; }
-    .filtros-avancados .filter-group { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px; }
-    .filtros-avancados .filter-group label { padding-left: 0; margin-right: 0; }
-    .filtros-avancados .filter-group select, .filtros-avancados .filter-group input { width: 100%; }
-    .form-progress-bar p { display: none; }
-    .form-footer { flex-direction: column; gap: 15px; }
-    .form-navigation { width: 100%; }
-    .dashboard-controls { padding: 15px; gap: 15px; }
-    .summary-card { flex-direction: column; text-align: center; gap: 10px; }
-    .summary-card .info input { text-align: center; }
-    .notification-panel { width: 90vw; right: -15px; }
-    .onload-notification { width: 90%; left: 5%; right: 5%; bottom: 10px; }
+/* Correção Definitiva para Notificações Mobile */
+@media (max-width: 768px) {
+    .notification-panel {
+        /* Fixa na tela, ignorando o botão do sino */
+        position: fixed !important;
+        
+        /* Define o topo (ajuste os 70px se ficar em cima do seu logo) */
+        top: 70px !important;
+        
+        /* Força o painel a esticar da esquerda à direita com margem */
+        left: 15px !important;
+        right: 15px !important;
+        width: auto !important; /* Importante para obedecer o left/right acima */
+        
+        /* Remove a transformação antiga que estava jogando o painel para o lado */
+        transform: none !important; 
+        
+        /* Ajustes visuais */
+        max-height: 80vh;
+        border-radius: 12px;
+        box-shadow: 0 0 0 100vw rgba(0,0,0,0.5); /* Escurece o fundo atrás */
+    }
+
+    /* Garante que o painel visível não tente animar posição */
+    .notification-panel:not(.hidden) {
+        transform: none !important;
+        opacity: 1 !important;
+    }
+
+    /* Esconde a setinha branca no topo */
+    .notification-panel::before {
+        display: none !important;
+    }
 }
 
 
@@ -1054,4 +1072,10 @@ body.dark-mode .reposicao-alert i, body.dark-mode .reposicao-content strong, bod
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+/* Correção para exibir todos os filtros avançados no mobile */
+.filtros-avancados.open {
+    /* Aumenta o limite de altura para garantir que tudo caiba em uma coluna só */
+    max-height: 2500px !important; 
 }
