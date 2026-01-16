@@ -413,45 +413,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div class="filter-group">
-                                    <label><i class="fas fa-tshirt"></i> Tam. Camisa</label>
-                                    <select class="shirt-size-filter">
-                                        <option value="">Todos</option>
-                                        <option value="PP">PP</option><option value="P">P</option><option value="M">M</option>
-                                        <option value="G">G</option><option value="GG">GG</option><option value="XG">XG</option>
-                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
-                                    </select>
-                                </div>
-                                <div class="filter-group">
-                                    <label><i class="fas fa-user-tag"></i> Tam. Calça</label>
-                                    <select class="pants-size-filter">
-                                        <option value="">Todos</option>
-                                        <option value="36">36</option><option value="38">38</option><option value="40">40</option>
-                                        <option value="42">42</option><option value="44">44</option><option value="46">46</option>
-                                        <option value="48">48</option><option value="50">50</option><option value="52">52</option>
-                                        <option value="54">54</option><option value="56">56</option>
-                                    </select>
-                                </div>
-                                <div class="filter-group">
-                                    <label><i class="fas fa-vest"></i> Tam. Jaqueta</label>
-                                    <select class="jacket-size-filter">
-                                        <option value="">Todos</option>
-                                        <option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option>
-                                        <option value="XG">XG</option>
-                                        <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option>
-                                    </select>
-                                </div>
-                                <div class="filter-group">
-                                    <label><i class="fas fa-shoe-prints"></i> Tam. Bota</label>
-                                    <select class="boots-size-filter">
-                                        <option value="">Todos</option>
-                                        <option value="34">34</option><option value="35">35</option><option value="36">36</option>
-                                        <option value="37">37</option><option value="38">38</option><option value="39">39</option>
-                                        <option value="40">40</option><option value="41">41</option><option value="42">42</option>
-                                        <option value="43">43</option><option value="44">44</option><option value="45">45</option>
-                                    </select>
-                                </div>
                                 <div class="filter-group">
                                     <label><i class="fas fa-birthday-cake"></i> Mês de Aniversário</label>
                                     <select class="birthday-month-filter">
