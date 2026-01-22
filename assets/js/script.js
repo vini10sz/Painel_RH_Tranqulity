@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final (Segurança CSRF e Funcionalidades Completas)
+// assets/js/script.js - Versão Final (Segurança CSRF, Funcionalidades Completas e Correção Demissão)
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -1842,6 +1842,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 } else {
                     handleFormSubmission();
+                }
+            });
+        }
+        
+        // --- CORREÇÃO: Lógica para o formulário de Encerrar Contrato ---
+        const terminateForm = document.getElementById('form-encerrar-contrato');
+        
+        if (terminateForm) {
+            terminateForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Impede o recarregamento da página
+                
+                const id = terminateForm.dataset.employeeId; // Pega o ID salvo ao abrir o modal
+                
+                // Prepara os dados para envio
+                const formData = new FormData(terminateForm);
+                formData.append('action', 'terminate_funcionario');
+                formData.append('id', id);
+
+                // Envia para a API
+                const result = await postAPI(formData);
+                
+                if (result && result.success) {
+                    // Fecha o modal
+                    document.getElementById('modal-encerrar-contrato').classList.add('hidden');
+                    
+                    showToast('Contrato encerrado com sucesso.');
+                    
+                    // Remove notificações antigas deste funcionário para limpar o painel
+                    removeNotificationsForEmployee(id);
+                    
+                    // Recarrega os dados para mover o funcionário para a lista de "Inativos"
+                    refreshDataAndRender();
                 }
             });
         }
