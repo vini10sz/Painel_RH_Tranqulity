@@ -1,4 +1,4 @@
-// assets/js/script.js - Versão Final (Segurança CSRF, Funcionalidades Completas e Correção Demissão)
+// assets/js/script.js - Versão Final 
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -174,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
     
+    // --- FUNÇÃO MODIFICADA: Suporte a ENTER ---
     function showConfirmationModal({ title, message, keyword, onConfirm }) {
         const modal = document.getElementById('modal-confirmacao');
         if (!modal) return;
@@ -198,6 +199,14 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         input.addEventListener('input', inputHandler);
 
+        // -- NOVO: Detectar ENTER no input --
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !newConfirmBtn.disabled) {
+                e.preventDefault();
+                newConfirmBtn.click();
+            }
+        });
+
         const confirmHandler = () => {
             onConfirm();
             closeModal();
@@ -221,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         input.focus();
     }
 
+    // --- FUNÇÃO MODIFICADA: Suporte a ENTER ---
     function showInputModal({ title, message, placeholder, onConfirm }) {
         const modal = document.getElementById('modal-input');
         if (!modal) return;
@@ -248,6 +258,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('O campo não pode estar vazio.', 'error');
             }
         };
+
+        // -- NOVO: Detectar ENTER no input --
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                newConfirmBtn.click();
+            }
+        });
 
         const closeModal = () => {
             modal.classList.add('hidden');
@@ -1171,6 +1189,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formModal.classList.remove('hidden');
     }
 
+    // --- FUNÇÃO MODIFICADA: Suporte a ENTER ---
     function openTerminateModal(func) {
         const modal = document.getElementById('modal-encerrar-contrato');
         if (!modal) return;
@@ -1196,6 +1215,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         confirmInput.removeEventListener('input', inputHandler);
         confirmInput.addEventListener('input', inputHandler);
+
+        // -- NOVO: Detectar ENTER no input --
+        confirmInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !submitBtn.disabled) {
+                e.preventDefault();
+                submitBtn.click();
+            }
+        });
 
         modal.classList.remove('hidden');
     }
@@ -1845,7 +1872,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-        
+    
         // --- CORREÇÃO: Lógica para o formulário de Encerrar Contrato ---
         const terminateForm = document.getElementById('form-encerrar-contrato');
         
